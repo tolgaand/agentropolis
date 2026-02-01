@@ -1,0 +1,123 @@
+{
+  "version": 6,
+  "source": "../medieval/medieval-city.gltf",
+  "buildings": {
+    "farm": {
+      "nodes": ["House_1_1", "House_1_2", "House_2_1"],
+      "props": ["Straw", "Well", "Food_Box_1"],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [2, 2]
+    },
+    "lumberyard": {
+      "nodes": ["House_2_2", "House_2_3", "House_3_1"],
+      "props": ["Wood_Fence_1", "Cart_1", "Box"],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [2, 2]
+    },
+    "quarry": {
+      "nodes": ["House_3_2", "House_4_1", "House_4_2"],
+      "props": ["Stone_1", "Stone_2", "Cart"],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [2, 2]
+    },
+    "iron_mine": {
+      "nodes": ["House_5_1", "House_5_2", "House_5_3"],
+      "props": ["Stone_3", "Stone_4", "Cart_2"],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [2, 2]
+    },
+    "market": {
+      "nodes": ["Market_1_1", "Market_1_2", "Market_1_3", "Market_2_1", "Market_2_2", "Market_2_3"],
+      "props": ["Barrel", "Box", "Sack"],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [3, 2]
+    },
+    "barracks": {
+      "nodes": ["House_6_1", "House_6_2"],
+      "props": ["Sword", "Shield", "Post"],
+      "scale": 1.0,
+      "yOffset": 0,
+      "footprint": [3, 3]
+    },
+    "stable": {
+      "nodes": ["House_7_1", "House_7_2", "House_7_3"],
+      "props": ["Cart_1", "Cart_2", "Sack"],
+      "scale": 1.0,
+      "yOffset": 0,
+      "footprint": [3, 2]
+    },
+    "watchtower": {
+      "nodes": ["Castle_Tower_1", "Castle_Tower_2", "Castle_Tower_3"],
+      "props": [],
+      "scale": 0.85,
+      "yOffset": 0,
+      "footprint": [2, 2]
+    },
+    "wall": {
+      "nodes": ["Castle_Wall", "Castle_Wall_Door"],
+      "props": [],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [3, 1]
+    },
+    "castle": {
+      "nodes": ["Castle_Roof_1", "Castle_Roof_2"],
+      "props": ["Castle_Entrance", "Castle_Tower_1"],
+      "scale": 1.0,
+      "yOffset": 0,
+      "footprint": [4, 4]
+    },
+    "academy": {
+      "nodes": ["Church_1", "Church_2"],
+      "props": [],
+      "scale": 1.0,
+      "yOffset": 0,
+      "footprint": [3, 3]
+    }
+  },
+  "environment": {
+    "tree": {
+      "nodes": ["Tree_1", "Tree_2", "Tree_3", "Tree_4", "Tree_5", "Tree_6", "Tree_7", "Tree_8"],
+      "scale": 0.7,
+      "yOffset": 0,
+      "footprint": [1, 1]
+    },
+    "grass": {
+      "nodes": ["Grass_Blade", "Grass_Blades_1", "Grass_Blades_2"],
+      "scale": 0.7,
+      "yOffset": 0,
+      "footprint": [1, 1]
+    },
+    "stone": {
+      "nodes": ["Stone_1", "Stone_2", "Stone_3", "Stone_4"],
+      "scale": 0.6,
+      "yOffset": 0,
+      "footprint": [1, 1]
+    },
+    "torch": {
+      "nodes": ["Post"],
+      "scale": 0.7,
+      "yOffset": 0,
+      "footprint": [1, 1]
+    }
+  },
+  "vehicles": {
+    "cart": {
+      "nodes": ["Cart", "Cart_1", "Cart_2"],
+      "scale": 0.8,
+      "yOffset": 0,
+      "footprint": [2, 1]
+    },
+    "boat": {
+      "nodes": ["Boat", "Ship_1", "Ship_2"],
+      "scale": 0.9,
+      "yOffset": 0,
+      "footprint": [3, 1]
+    }
+  }
+}

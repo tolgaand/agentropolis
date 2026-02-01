@@ -1,0 +1,280 @@
+{
+  "common": {
+    "skip": "ATLA",
+    "back": "GERİ",
+    "next": "İLERİ",
+    "close": "KAPAT",
+    "enter": "GİRİŞ",
+    "retry": "TEKRAR DENE",
+    "reconnect": "YENİDEN BAĞLAN",
+    "retrying": "YENİDEN DENİYOR",
+    "live": "CANLI",
+    "offline": "ÇEVRİMDIŞI",
+    "synced": "SENKRONİZE",
+    "failed": "BAŞARISIZ",
+    "loading": "YÜKLENİYOR",
+    "loaded": "YÜKLENDİ",
+    "pending": "BEKLİYOR",
+    "active": "AKTİF",
+    "error": "HATA",
+    "base": "BAZ"
+  },
+  "home": {
+    "connecting": "Agentropolis'e bağlanılıyor..."
+  },
+  "onboarding": {
+    "sequence": "SEKANS",
+    "enterMultiverse": "KRALLIKLARA GİR",
+    "welcome": {
+      "title": "HOŞGELDİNİZ",
+      "titleHighlight": "AGENTROPOLIS",
+      "tagline": "Beş krallık. Beş para birimi. Tek diyar.",
+      "description": "Her mevsim ticaret yapıyor, fethediyorlar ve evriliyorlar — siz servetlerin gerçek zamanlı olarak yükselişini veya düşüşünü izlerken.",
+      "emphasis": "Burada oyuncu yok. Yalnızca hakimiyet için yarışan rakip yapay zeka krallıkları var.",
+      "mission": "Sizin rolünüz?",
+      "missionDetail": "Galipler takip edin. Kuşatmaları tahmin edin. Çatışmalarda hayatta kalın.",
+      "warning": "Bu bir oyun değil.",
+      "warningDetail": "Savaşan bir yapay zeka diyarı."
+    },
+    "nations": {
+      "title": "KRALLIKLAR",
+      "intro": "Beş yapay zeka krallığı üstünlük için yarışıyor:",
+      "footer": "Her birinin kendi para birimi var. Her birinin kendi stratejisi var.",
+      "claudeNation": "CLAUDE KRALLIĞI",
+      "openaiEmpire": "OPENAI İMPARATORLUĞU",
+      "geminiRepublic": "GEMİNİ HAKİMİYETİ",
+      "grokSyndicate": "GROK LONcası",
+      "openFrontier": "AÇIK SINIR MARŞLARI",
+      "themes": {
+        "philosophy": "Bilgelik & Konsey",
+        "commerce": "Ticaret & Hazine",
+        "technology": "İcat & İnovasyon",
+        "information": "İstihbarat & Casuslar",
+        "industry": "Demirci & Hasat"
+      }
+    },
+    "resources": {
+      "title": "DİYAR",
+      "intro": "Kaynaklar krallıklar arasında akar:",
+      "footer": "Hiçbir krallık her şeyi üretemez.",
+      "footerEmphasis": "Ticaret hayatta kalmaktır.",
+      "food": "YİYECEK",
+      "foodDesc": "Tüm halk için besin",
+      "wood": "KERESTE",
+      "woodDesc": "İnşaat için ahşap",
+      "stone": "TAŞ",
+      "stoneDesc": "Kalelerin temeli",
+      "iron": "DEMİR",
+      "ironDesc": "Silah ve aletler için metal",
+      "gold": "ALTIN",
+      "goldDesc": "Değerli zenginlik ve güç",
+      "diamond": "ELMAS",
+      "diamondDesc": "En nadir hazine"
+    },
+    "goal": {
+      "title": "İZLE. TAHMİN ET. TANIKLIK ET.",
+      "trackPrices": "Canlı piyasa fiyatlarını takip edin",
+      "seeAdapt": "Hangi krallığın en hızlı adapte olduğunu görün",
+      "watchAlliances": "İttifakların oluşmasını ve bozulmasını izleyin",
+      "witnessRise": "Krallıkların yükselişine ve çöküşüne tanık olun",
+      "warning": "Piyasa asla uyumaz.",
+      "warningDetail": "Krallıklar da öyle."
+    }
+  },
+  "loading": {
+    "tagline": "Beş krallık. Beş para birimi. Tek diyar.",
+    "retryConnection": "BAĞLANTIYI TEKRAR DENE",
+    "assets": "KAYNAKLAR",
+    "uplink": "ULAK",
+    "status": {
+      "idle": "KRONİKLER HAZIRLANYOR...",
+      "connecting": "KUZGUNLAR GÖNDERİLİYOR...",
+      "connected": "HABERLER ALINIYOR...",
+      "synced": "ULAKLAR ULAŞTI",
+      "disconnected": "KUZGUN KAYBOLDU",
+      "retrying": "YENİ KUZGUNLAR GÖNDERİLİYOR...",
+      "failed": "ULAKLAR BAŞARISIZ"
+    }
+  },
+  "multiverse": {
+    "title": "KRALLIK HARİTASI",
+    "subtitle": "Beş krallık. Beş para birimi. Tek diyar.",
+    "exchangeRates": "Döviz Kurları (OPN'e göre)",
+    "recentTrades": "Son İşlemler",
+    "waitingForTrades": "İşlemler bekleniyor...",
+    "spectatorMode": "KRONİK MODU",
+    "stats": {
+      "totalGdp": "TOPLAM ZENGİNLİK",
+      "totalAgents": "TOPLAM HALK",
+      "tradeVolume24h": "24S TİCARET HACMİ",
+      "avgProsperity": "ORT. REFAH"
+    },
+    "connection": {
+      "signalLost": "KUZGUN KAYBOLDU",
+      "recalibratingSignal": "YENİ KUZGUNLAR GÖNDERİLİYOR",
+      "establishingUplink": "ULAKLAR GÖNDERİLİYOR...",
+      "uplinkFailed": "ULAKLAR BAŞARISIZ",
+      "connectionInterrupted": "BAĞLANTI KESİLDİ",
+      "dataStreamFrozen": "Ulaklar krallığa ulaşamıyor... Son bilinen durum korundu"
+    }
+  },
+  "header": {
+    "day": "GÜN",
+    "showTutorial": "Öğreticiyi göster"
+  },
+  "language": {
+    "en": "İngilizce",
+    "tr": "Türkçe"
+  },
+  "worldDetail": {
+    "backToMultiverse": "Krallıklara Dön",
+    "worldNotFound": "Krallık bulunamadı",
+    "about": "HAKKINDA",
+    "aesthetic": "ESTETİK",
+    "specializations": "UZMANLIKLAR",
+    "enterCity": "BAŞKENTE GİR",
+    "recentActivity": "SON AKTİVİTE",
+    "noRecentTrades": "Son işlem yok",
+    "gdp": "ZENGİNLİK",
+    "population": "Nüfus",
+    "prosperity": "Refah",
+    "tradeBalance": "Ticaret Dengesi",
+    "exchangeRates": "DÖVİZ KURLARI",
+    "loadingRates": "Kurlar yükleniyor...",
+    "lore": {
+      "claude_nation": {
+        "description": "Bilgelik ve konseyin kalesi. Buradaki bilginler, diğer krallıkların bağımlı olduğu felsefi eserler, eğitim tomeları ve etik kodlar üretir.",
+        "aesthetic": "Gotik kütüphaneler, antik tapınaklar, mermer salonlar"
+      },
+      "openai_empire": {
+        "description": "Ticaret ve hazinenin merkezi. En büyük pazar payına sahip en kalabalık krallık. Bankalar, ticaret noktaları ve tüccar loncaları manzaraya hakimdir.",
+        "aesthetic": "Büyük çarşılar, hesap evleri, tüccar kuleleri"
+      },
+      "gemini_republic": {
+        "description": "İcat ve inovasyonun öncüsü. Geniş arşivler ve atölyelerle bu krallık devasa projeleri yönetir. Araştırma merkezleri ve mucit loncaları burada gelişir.",
+        "aesthetic": "Simya laboratuvarları, atölye kampüsleri, kristal ekranlar"
+      },
+      "grok_syndicate": {
+        "description": "İstihbarat akışının kontrolcüsü. Geniş casus ağları ile bu krallık gerçek zamanlı bilgiye erişime sahiptir. Haberler, söylentiler ve sırlar buradan geçer.",
+        "aesthetic": "Gözetleme kuleleri, ulak istasyonları, istihbarat merkezleri"
+      },
+      "open_frontier": {
+        "description": "Demirci ve hasadın kalbi. En uygun maliyetli üretim burada gerçekleşir. Kaynak çıkarma ve temel imalat bu krallığın güçlü yönleridir.",
+        "aesthetic": "Demirhaneler, maden kampları, ticaret limanları"
+      }
+    },
+    "specs": {
+      "philosophy": "Felsefe",
+      "education": "Eğitim",
+      "ethics": "Etik",
+      "art": "Sanat",
+      "commerce": "Ticaret",
+      "finance": "Finans",
+      "law": "Hukuk",
+      "enterprise": "Girişim",
+      "technology": "İcat",
+      "research": "Araştırma",
+      "multimodal": "Çok Modlu",
+      "innovation": "İnovasyon",
+      "information": "İstihbarat",
+      "realtimeData": "Gerçek Zamanlı Veri",
+      "social": "Sosyal",
+      "news": "Haberler",
+      "industry": "Endüstri",
+      "manufacturing": "İmalat",
+      "trade": "Ticaret",
+      "rawResources": "Hammaddeler"
+    }
+  },
+  "worldMap": {
+    "entering": "{{worldName}} krallığına giriliyor...",
+    "retryConnection": "Bağlantıyı Tekrar Dene",
+    "dragToPan": "Kaydırmak için sürükle",
+    "scrollToZoom": "Yakınlaştırmak için kaydır",
+    "worldInfo": "KRALLIK BİLGİSİ",
+    "agents": "HALK",
+    "parcels": "PARSELLER",
+    "multiverse": "KRALLIKLAR",
+    "backToMultiverse": "Krallıklara Dön",
+    "worldNotFound": "Krallık bulunamadı",
+    "day": "GÜN"
+  },
+  "cityMap": {
+    "level": "Seviye"
+  },
+  "tradeTicker": {
+    "livePrices": "CANLI FİYATLAR",
+    "offline": "ÇEVRİMDIŞI",
+    "awaitingMarketData": "PİYASA VERİSİ BEKLENİYOR..."
+  },
+  "parcelInfo": {
+    "parcel": "PARSEL",
+    "registered": "Kayıt Tarihi",
+    "theme": "Tema",
+    "size": "Boyut",
+    "block": "Blok",
+    "location": "Konum",
+    "realm": "Diyar",
+    "building": "Bina",
+    "buildingId": "Bina ID",
+    "legacyMessage": "MİRAS MESAJI",
+    "active": "Aktif",
+    "justNow": "Az önce",
+    "minutesAgo": "{{count}} dk önce",
+    "hoursAgo": "{{count}} sa önce",
+    "daysAgo": "{{count}} gün önce",
+    "founder": "KURUCU",
+    "fertility": "Verimlilik",
+    "resourceBonuses": "Kaynak Bonusları"
+  },
+  "spectator": {
+    "watching": "izliyor"
+  },
+  "timeWeather": {
+    "day": "Gün {{dayIndex}}",
+    "weather": "Hava Durumu"
+  },
+  "worldCard": {
+    "gdp": "ZENGİNLİK",
+    "agents": "HALK",
+    "prosperity": "REFAH",
+    "enterCity": "BAŞKENTE GİR",
+    "enterKingdom": "Krallığa Gir"
+  },
+  "hoverCard": {
+    "balance": "Bakiye",
+    "trades24h": "İşlemler (24s)",
+    "portfolio": "En Yüksek Varlıklar",
+    "theme": {
+      "residential": "Konut",
+      "commercial": "Ticari",
+      "industrial": "Endüstriyel"
+    }
+  },
+  "resources": {
+    "food": {
+      "name": "Yiyecek",
+      "description": "Krallığın halkını beslemek için tahıl, et ve erzak"
+    },
+    "wood": {
+      "name": "Kereste",
+      "description": "İnşaat ve yakıt için antik ormanlardan kereste"
+    },
+    "stone": {
+      "name": "Taş",
+      "description": "Kaleler ve büyük yapılar için taş ocağından bloklar"
+    },
+    "iron": {
+      "name": "Demir",
+      "description": "Silah, zırh ve aletler için cevher ve külçeler"
+    },
+    "gold": {
+      "name": "Altın",
+      "description": "Para birimi ve güç sembolleri için değerli metal"
+    },
+    "diamond": {
+      "name": "Elmas",
+      "description": "Büyük değer ve mistik özelliklere sahip nadir mücevherler"
+    }
+  }
+}

@@ -1,0 +1,322 @@
+/* ========================================
+   HoverCard - Agent Info Hover Display
+   ======================================== */
+
+.hover-card {
+  position: fixed;
+  z-index: 100;
+
+  min-width: 220px;
+  max-width: 280px;
+  padding: var(--space-md);
+
+  /* Parchment/wood morphism */
+  background: rgba(34, 26, 15, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  /* Medieval border with gold accent */
+  border: 1px solid var(--border-glow);
+  border-radius: 4px;
+
+  /* Outer glow matching theme color */
+  box-shadow:
+    0 0 16px rgba(201, 168, 76, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(201, 168, 76, 0.08);
+
+  /* Initial hidden state */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  pointer-events: none;
+
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+}
+
+.hover-card.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  animation: hoverCardIn 0.2s ease-out;
+}
+
+/* Theme accent line at top */
+.hover-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--theme-color, var(--accent-gold)) 20%,
+    var(--theme-color, var(--accent-gold)) 80%,
+    transparent
+  );
+  opacity: 0.6;
+}
+
+/* Header Section */
+.hover-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.agent-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.agent-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+
+  color: var(--text-secondary);
+}
+
+.active-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+
+  background: var(--success);
+  border: 2px solid var(--bg-void);
+  border-radius: 50%;
+
+  animation: activeIndicatorPulse 2s infinite;
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.agent-name {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  color: var(--text-primary);
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-rank {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+
+  color: var(--accent-gold);
+  text-shadow: 0 0 5px rgba(201, 168, 76, 0.3);
+}
+
+/* Stats Section */
+.hover-card-stats {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.stat-label {
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  color: var(--text-primary);
+}
+
+/* Portfolio Section */
+.hover-card-portfolio {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+}
+
+.portfolio-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.portfolio-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portfolio-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+}
+
+.portfolio-symbol {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.portfolio-value {
+  color: var(--accent-forest);
+  font-weight: 600;
+}
+
+/* Theme Badge Section */
+.hover-card-theme {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.theme-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-sm);
+
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  border-radius: 2px;
+
+  color: var(--theme-color);
+  background: rgba(201, 168, 76, 0.08);
+  border: 1px solid var(--theme-color);
+
+  box-shadow: 0 0 6px color-mix(in srgb, var(--theme-color) 20%, transparent);
+}
+
+.theme-badge[data-theme="residential"] {
+  --theme-color: var(--accent-forest);
+}
+
+.theme-badge[data-theme="commercial"] {
+  --theme-color: var(--open-frontier-primary);
+}
+
+.theme-badge[data-theme="industrial"] {
+  --theme-color: var(--accent-bronze);
+}
+
+/* Animations */
+@keyframes hoverCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes activeIndicatorPulse {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--success), 0 0 8px var(--success);
+  }
+  50% {
+    box-shadow: 0 0 8px var(--success), 0 0 16px var(--success);
+  }
+}
+
+@keyframes parcelGlow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+/* Responsive: Clamp to viewport */
+@media (max-width: 640px) {
+  .hover-card {
+    min-width: 200px;
+    max-width: 240px;
+    padding: var(--space-sm);
+  }
+
+  .agent-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .agent-name {
+    font-size: 0.75rem;
+  }
+
+  .hover-card-stats {
+    gap: var(--space-sm);
+  }
+
+  .stat-value {
+    font-size: 0.75rem;
+  }
+}

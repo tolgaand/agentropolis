@@ -1,0 +1,604 @@
+/* ========================================
+   AGENTROPOLIS - Page Transition Overlay
+   Medieval transition effects
+   ======================================== */
+
+.transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  /* Smooth fade out transition */
+  transition: opacity 150ms ease-out, visibility 150ms ease-out;
+}
+
+.transition-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
+  /* Smooth fade in transition */
+  transition: opacity 100ms ease-in, visibility 100ms ease-in;
+}
+
+/* Base layer - dark backdrop */
+.transition-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-void);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.transition-overlay.active .transition-backdrop {
+  opacity: 0.95;
+}
+
+/* ========================================
+   GPU ACCELERATION HINTS
+   Force compositing for smooth animations
+   ======================================== */
+
+.glitch-text,
+.scan-line,
+.glitch-bar,
+.glitch-layer::before,
+.glitch-layer::after,
+.portal-ring,
+.portal-center,
+.matrix-column {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* ========================================
+   MEDIEVAL TEXT EFFECT
+   Gold/crimson chromatic split
+   ======================================== */
+
+.transition-glitch {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.glitch-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glitch-layer::before,
+.glitch-layer::after {
+  content: 'ENTERING';
+  position: absolute;
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: var(--accent-gold);
+  text-shadow: 0 0 20px var(--accent-gold);
+  opacity: 0;
+}
+
+/* Crimson channel offset */
+.glitch-layer::before {
+  color: var(--accent-crimson);
+  text-shadow: 0 0 20px var(--accent-crimson);
+  animation: glitch-red 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Gold channel offset */
+.glitch-layer::after {
+  color: var(--accent-gold);
+  text-shadow: 0 0 20px var(--accent-gold);
+  animation: glitch-blue 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.glitch-text {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: var(--text-primary);
+  text-shadow: 0 0 30px rgba(201, 168, 76, 0.5);
+  opacity: 0;
+  animation: glitch-main 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Transform-based reveal using scaleY instead of clip-path */
+@keyframes glitch-main {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scaleY(0);
+  }
+  3% {
+    opacity: 0.5;
+    transform: translate3d(0, 0, 0) scaleY(0.5);
+  }
+  5% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  8% {
+    transform: translate3d(-3px, 0, 0) scaleY(1);
+  }
+  12% {
+    transform: translate3d(3px, 0, 0) scaleY(1);
+  }
+  16% {
+    transform: translate3d(-2px, 0, 0) scaleY(1);
+  }
+  20% {
+    transform: translate3d(2px, 0, 0) scaleY(1);
+  }
+  24% {
+    transform: translate3d(-1px, 0, 0) scaleY(1);
+  }
+  30% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  82% {
+    opacity: 0.9;
+    transform: translate3d(2px, 0, 0) scaleY(1);
+  }
+  88% {
+    opacity: 0.7;
+    transform: translate3d(-2px, 0, 0) scaleY(1);
+  }
+  94% {
+    opacity: 0.4;
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+}
+
+@keyframes glitch-red {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  5% {
+    opacity: 0.7;
+    transform: translate3d(0, 0, 0);
+  }
+  8% {
+    opacity: 0.8;
+    transform: translate3d(-4px, -2px, 0);
+  }
+  12% {
+    opacity: 0.75;
+    transform: translate3d(2px, 1px, 0);
+  }
+  16% {
+    opacity: 0.7;
+    transform: translate3d(-3px, 2px, 0);
+  }
+  20% {
+    opacity: 0.65;
+    transform: translate3d(4px, -1px, 0);
+  }
+  24% {
+    opacity: 0.6;
+    transform: translate3d(-2px, 1px, 0);
+  }
+  30% {
+    opacity: 0.55;
+    transform: translate3d(-2px, 0, 0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate3d(-1px, 0, 0);
+  }
+  75% {
+    opacity: 0.35;
+    transform: translate3d(-1px, 0, 0);
+  }
+  90% {
+    opacity: 0.15;
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes glitch-blue {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  5% {
+    opacity: 0.7;
+    transform: translate3d(0, 0, 0);
+  }
+  8% {
+    opacity: 0.8;
+    transform: translate3d(4px, 2px, 0);
+  }
+  12% {
+    opacity: 0.75;
+    transform: translate3d(-2px, -1px, 0);
+  }
+  16% {
+    opacity: 0.7;
+    transform: translate3d(3px, -2px, 0);
+  }
+  20% {
+    opacity: 0.65;
+    transform: translate3d(-4px, 1px, 0);
+  }
+  24% {
+    opacity: 0.6;
+    transform: translate3d(2px, -1px, 0);
+  }
+  30% {
+    opacity: 0.55;
+    transform: translate3d(2px, 0, 0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate3d(1px, 0, 0);
+  }
+  75% {
+    opacity: 0.35;
+    transform: translate3d(1px, 0, 0);
+  }
+  90% {
+    opacity: 0.15;
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ========================================
+   PARCHMENT REVEAL EFFECT
+   Scroll/parchment unfurling
+   ======================================== */
+
+.transition-scan {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.scan-line {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(201, 168, 76, 0.03) 20%,
+    rgba(201, 168, 76, 0.1) 40%,
+    rgba(240, 232, 216, 0.4) 50%,
+    rgba(201, 168, 76, 0.1) 60%,
+    rgba(201, 168, 76, 0.03) 80%,
+    transparent 100%
+  );
+  animation: scan-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.scan-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--accent-gold);
+  box-shadow:
+    0 0 10px var(--accent-gold),
+    0 0 20px var(--accent-gold),
+    0 0 40px var(--accent-gold);
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.5;
+  }
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate3d(0, calc(100vh + 200px), 0);
+    opacity: 0;
+  }
+}
+
+/* Static noise overlay during transition */
+.scan-noise {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0;
+  mix-blend-mode: overlay;
+  animation: noise-flicker 1.4s ease-in-out forwards;
+}
+
+@keyframes noise-flicker {
+  0% { opacity: 0; }
+  5% { opacity: 0.02; }
+  10% { opacity: 0.06; }
+  15% { opacity: 0.03; }
+  20% { opacity: 0.05; }
+  25% { opacity: 0.04; }
+  30% { opacity: 0.05; }
+  50% { opacity: 0.04; }
+  75% { opacity: 0.03; }
+  90% { opacity: 0.02; }
+  100% { opacity: 0; }
+}
+
+/* ========================================
+   PORTAL EFFECT
+   Circular warp/vortex with gold glow
+   ======================================== */
+
+.transition-portal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.portal-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--accent-gold);
+  box-shadow:
+    0 0 20px var(--accent-gold),
+    inset 0 0 20px rgba(201, 168, 76, 0.2);
+  opacity: 0;
+}
+
+.portal-ring:nth-child(1) {
+  width: 50px;
+  height: 50px;
+  animation: portal-expand 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0s;
+}
+
+.portal-ring:nth-child(2) {
+  width: 50px;
+  height: 50px;
+  animation: portal-expand 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.1s;
+}
+
+.portal-ring:nth-child(3) {
+  width: 50px;
+  height: 50px;
+  animation: portal-expand 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.portal-ring:nth-child(4) {
+  width: 50px;
+  height: 50px;
+  animation: portal-expand 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.3s;
+}
+
+.portal-center {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+  box-shadow:
+    0 0 30px var(--accent-gold),
+    0 0 60px var(--accent-gold);
+  animation: portal-pulse 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes portal-expand {
+  0% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0;
+    transform: scale3d(40, 40, 1);
+  }
+}
+
+@keyframes portal-pulse {
+  0% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale3d(2, 2, 1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale3d(3, 3, 1);
+  }
+  75% {
+    opacity: 0.6;
+    transform: scale3d(20, 20, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale3d(50, 50, 1);
+  }
+}
+
+/* ========================================
+   REMOVED: MATRIX EFFECT
+   (Not thematically appropriate for medieval)
+   ======================================== */
+
+.transition-matrix {
+  display: none;
+}
+
+.matrix-column {
+  display: none;
+}
+
+/* ========================================
+   COMBINED GLITCH + SCAN (Default)
+   ======================================== */
+
+.transition-combined {
+  position: absolute;
+  inset: 0;
+}
+
+.transition-combined .transition-glitch,
+.transition-combined .transition-scan {
+  position: absolute;
+  inset: 0;
+}
+
+/* Horizontal glitch bars */
+.glitch-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: rgba(201, 168, 76, 0.1);
+  overflow: hidden;
+}
+
+.glitch-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 0, 0, 0.3) 25%,
+    transparent 50%,
+    rgba(201, 168, 76, 0.3) 75%,
+    transparent 100%
+  );
+}
+
+.glitch-bar:nth-child(1) {
+  top: 15%;
+  animation: glitch-bar-1 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.glitch-bar:nth-child(2) {
+  top: 35%;
+  animation: glitch-bar-2 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.glitch-bar:nth-child(3) {
+  top: 55%;
+  animation: glitch-bar-3 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.glitch-bar:nth-child(4) {
+  top: 75%;
+  animation: glitch-bar-4 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Smooth glitch bar animations with transform-based movement */
+@keyframes glitch-bar-1 {
+  0% { height: 0; transform: translate3d(0, 0, 0); }
+  8% { height: 0; transform: translate3d(0, 0, 0); }
+  9% { height: 8%; transform: translate3d(-5px, 0, 0); }
+  10% { height: 6%; transform: translate3d(-3px, 0, 0); }
+  11% { height: 8%; transform: translate3d(-5px, 0, 0); }
+  12% { height: 0; transform: translate3d(0, 0, 0); }
+  20% { height: 0; transform: translate3d(0, 0, 0); }
+  21% { height: 4%; transform: translate3d(3px, 0, 0); }
+  24% { height: 3%; transform: translate3d(2px, 0, 0); }
+  27% { height: 4%; transform: translate3d(3px, 0, 0); }
+  28% { height: 0; transform: translate3d(0, 0, 0); }
+  100% { height: 0; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes glitch-bar-2 {
+  0% { height: 0; transform: translate3d(0, 0, 0); }
+  5% { height: 0; transform: translate3d(0, 0, 0); }
+  6% { height: 6%; transform: translate3d(4px, 0, 0); }
+  10% { height: 5%; transform: translate3d(3px, 0, 0); }
+  14% { height: 6%; transform: translate3d(4px, 0, 0); }
+  15% { height: 0; transform: translate3d(0, 0, 0); }
+  18% { height: 0; transform: translate3d(0, 0, 0); }
+  19% { height: 3%; transform: translate3d(-2px, 0, 0); }
+  21% { height: 2%; transform: translate3d(-1px, 0, 0); }
+  24% { height: 3%; transform: translate3d(-2px, 0, 0); }
+  25% { height: 0; transform: translate3d(0, 0, 0); }
+  100% { height: 0; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes glitch-bar-3 {
+  0% { height: 0; transform: translate3d(0, 0, 0); }
+  10% { height: 0; transform: translate3d(0, 0, 0); }
+  11% { height: 10%; transform: translate3d(-3px, 0, 0); }
+  12% { height: 8%; transform: translate3d(-2px, 0, 0); }
+  13% { height: 10%; transform: translate3d(-3px, 0, 0); }
+  14% { height: 0; transform: translate3d(0, 0, 0); }
+  22% { height: 0; transform: translate3d(0, 0, 0); }
+  23% { height: 5%; transform: translate3d(5px, 0, 0); }
+  26% { height: 4%; transform: translate3d(4px, 0, 0); }
+  29% { height: 5%; transform: translate3d(5px, 0, 0); }
+  30% { height: 0; transform: translate3d(0, 0, 0); }
+  100% { height: 0; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes glitch-bar-4 {
+  0% { height: 0; transform: translate3d(0, 0, 0); }
+  7% { height: 0; transform: translate3d(0, 0, 0); }
+  8% { height: 7%; transform: translate3d(2px, 0, 0); }
+  9% { height: 5%; transform: translate3d(1px, 0, 0); }
+  11% { height: 7%; transform: translate3d(2px, 0, 0); }
+  12% { height: 0; transform: translate3d(0, 0, 0); }
+  17% { height: 0; transform: translate3d(0, 0, 0); }
+  18% { height: 4%; transform: translate3d(-4px, 0, 0); }
+  21% { height: 3%; transform: translate3d(-3px, 0, 0); }
+  25% { height: 4%; transform: translate3d(-4px, 0, 0); }
+  26% { height: 0; transform: translate3d(0, 0, 0); }
+  100% { height: 0; transform: translate3d(0, 0, 0); }
+}

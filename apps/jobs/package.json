@@ -1,0 +1,26 @@
+{
+  "name": "@agentropolis/jobs",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx src/scripts/seed.ts"
+  },
+  "dependencies": {
+    "@agentropolis/db": "workspace:*",
+    "@agentropolis/shared": "workspace:*",
+    "bullmq": "^4.15.0",
+    "dotenv": "^16.4.0",
+    "ioredis": "^5.4.0",
+    "mongoose": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

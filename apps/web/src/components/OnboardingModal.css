@@ -1,0 +1,869 @@
+/* ========================================
+   ONBOARDING MODAL - Medieval Theme
+   Following Codex-approved design guidelines
+   ======================================== */
+
+/* Overlay */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 18, 9, 0.96);
+  backdrop-filter: blur(12px);
+  animation: modal-fade-in 240ms ease-out;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.onboarding-modal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 1rem;
+  padding: 28px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow:
+    0 0 80px rgba(201, 168, 76, 0.08),
+    0 0 40px rgba(139, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: modal-scale-in 240ms ease-out;
+}
+
+@keyframes modal-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Subtle parchment texture overlay */
+.onboarding-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(201, 168, 76, 0.008) 2px,
+    rgba(201, 168, 76, 0.008) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Corner brackets - medieval decorative corners */
+.corner-bracket {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--accent-gold);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0.6;
+  z-index: 2;
+}
+
+.corner-bracket.top-left {
+  top: 8px;
+  left: 8px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.corner-bracket.top-right {
+  top: 8px;
+  right: 8px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.corner-bracket.bottom-left {
+  bottom: 8px;
+  left: 8px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+.corner-bracket.bottom-right {
+  bottom: 8px;
+  right: 8px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Step indicator */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.step-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.step-number {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  text-shadow: 0 0 8px var(--accent-gold);
+}
+
+/* Content area */
+.onboarding-content {
+  position: relative;
+  min-height: 280px;
+  z-index: 3;
+}
+
+/* Step animations */
+.onboarding-content.slide-next {
+  animation: slide-out-left 200ms ease-out;
+}
+
+.onboarding-content.slide-prev {
+  animation: slide-out-right 200ms ease-out;
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+/* Base step content */
+.step-content {
+  animation: step-fade-in 220ms ease-out;
+}
+
+@keyframes step-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Typography - STRICT: Using CSS variables only */
+.step-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  text-shadow:
+    0 0 20px rgba(201, 168, 76, 0.3),
+    1px 1px 0 rgba(201, 168, 76, 0.1),
+    -1px -1px 0 rgba(139, 0, 0, 0.1);
+}
+
+.step-title:hover {
+  text-shadow:
+    0 0 20px rgba(201, 168, 76, 0.5),
+    2px 2px 0 rgba(201, 168, 76, 0.2),
+    -2px -2px 0 rgba(139, 0, 0, 0.2);
+}
+
+.title-highlight {
+  color: var(--accent-gold);
+  text-shadow:
+    0 0 10px var(--accent-gold),
+    0 0 30px var(--accent-gold);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  text-shadow: 0 0 15px rgba(201, 168, 76, 0.2);
+}
+
+.section-desc {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.section-note {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-top: 16px;
+  font-style: italic;
+}
+
+/* Text colors */
+.text-cyan {
+  color: var(--accent-gold);
+  text-shadow: 0 0 8px var(--accent-gold);
+}
+
+.text-green {
+  color: var(--accent-forest);
+  text-shadow: 0 0 8px var(--accent-forest);
+}
+
+/* Ink reveal effect - subtle medieval alternative to glitch */
+.glitch-text {
+  position: relative;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+}
+
+.glitch-text:hover::before {
+  animation: ink-reveal-1 0.3s ease;
+  color: var(--accent-gold);
+  opacity: 0.3;
+}
+
+.glitch-text:hover::after {
+  animation: ink-reveal-2 0.3s ease;
+  color: var(--accent-crimson);
+  opacity: 0.3;
+}
+
+@keyframes ink-reveal-1 {
+  0%, 100% { transform: translate(0); opacity: 0; }
+  20% { transform: translate(-1px, 0.5px); opacity: 0.2; }
+  40% { transform: translate(1px, -0.5px); opacity: 0.3; }
+  60% { transform: translate(-0.5px, 1px); opacity: 0.2; }
+  80% { transform: translate(0.5px, -1px); opacity: 0.1; }
+}
+
+@keyframes ink-reveal-2 {
+  0%, 100% { transform: translate(0); opacity: 0; }
+  20% { transform: translate(1px, -0.5px); opacity: 0.2; }
+  40% { transform: translate(-1px, 0.5px); opacity: 0.3; }
+  60% { transform: translate(0.5px, -1px); opacity: 0.2; }
+  80% { transform: translate(-0.5px, 1px); opacity: 0.1; }
+}
+
+/* Auto-playing subtle reveal for welcome title */
+@keyframes ink-auto-1 {
+  0%, 88%, 100% {
+    transform: translate(0);
+    opacity: 0;
+  }
+  90% {
+    transform: translate(-1.5px, 0.5px);
+    opacity: 0.2;
+  }
+  92% {
+    transform: translate(1.5px, -0.5px);
+    opacity: 0.15;
+  }
+  94% {
+    transform: translate(-1px, 1px);
+    opacity: 0.1;
+  }
+  96% {
+    transform: translate(1px, -1px);
+    opacity: 0.05;
+  }
+}
+
+@keyframes ink-auto-2 {
+  0%, 88%, 100% {
+    transform: translate(0);
+    opacity: 0;
+  }
+  89% {
+    transform: translate(1.5px, -0.5px);
+    opacity: 0.2;
+  }
+  91% {
+    transform: translate(-1.5px, 0.5px);
+    opacity: 0.15;
+  }
+  93% {
+    transform: translate(1px, -1px);
+    opacity: 0.1;
+  }
+  95% {
+    transform: translate(-1px, 1px);
+    opacity: 0.05;
+  }
+}
+
+/* Persistent subtle reveal effect - auto-plays on loop */
+.glitch-text-auto {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-text-auto::before,
+.glitch-text-auto::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.glitch-text-auto::before {
+  color: var(--accent-gold);
+  text-shadow: 0 0 10px var(--accent-gold);
+  animation: ink-auto-1 3s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+.glitch-text-auto::after {
+  color: var(--accent-crimson);
+  text-shadow: 0 0 10px var(--accent-crimson);
+  animation: ink-auto-2 3s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+/* Stronger hover effect override */
+.glitch-text-auto:hover::before {
+  animation: ink-reveal-1 0.3s ease forwards;
+  opacity: 0.3;
+}
+
+.glitch-text-auto:hover::after {
+  animation: ink-reveal-2 0.3s ease forwards;
+  opacity: 0.3;
+}
+
+/* ========================================
+   STEP 1: WELCOME
+   ======================================== */
+
+.step-welcome .welcome-tagline {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--accent-gold);
+  text-shadow: 0 0 10px var(--accent-gold);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.step-welcome .welcome-desc {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.step-welcome .welcome-emphasis {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.step-welcome .welcome-mission {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.step-welcome .welcome-warning {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.text-red {
+  color: var(--accent-crimson);
+  text-shadow: 0 0 8px var(--accent-crimson);
+}
+
+/* ========================================
+   STEP 2: NATIONS
+   ======================================== */
+
+.step-nations .section-intro {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.step-nations .section-footer {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 16px;
+  font-style: italic;
+}
+
+.nations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Center the last item if odd number */
+.nations-grid .nation-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  max-width: calc(50% - 5px);
+  margin: 0 auto;
+}
+
+.nation-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-left: 3px solid var(--nation-color);
+  transition: all 120ms ease-out;
+  cursor: default;
+}
+
+.nation-card::before,
+.nation-card::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--nation-color);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.nation-card::before {
+  top: 4px;
+  right: 4px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.nation-card::after {
+  bottom: 4px;
+  right: 4px;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+.nation-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 20px color-mix(in srgb, var(--nation-color) 20%, transparent);
+  border-color: var(--nation-color);
+}
+
+.nation-card:hover::before,
+.nation-card:hover::after {
+  opacity: 0.6;
+}
+
+.nation-emoji {
+  font-size: 22px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.nation-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nation-name {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.nation-theme {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ========================================
+   STEP 3: RESOURCES
+   ======================================== */
+
+.step-resources .section-intro {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.step-resources .section-footer {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 16px;
+}
+
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.resource-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-left: 3px solid var(--resource-color);
+  transition: all 120ms ease-out;
+}
+
+.resource-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--resource-color) 30%, transparent);
+  border-color: var(--resource-color);
+}
+
+.resource-emoji {
+  font-size: 20px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.resource-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.resource-name {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--resource-color);
+  text-transform: uppercase;
+  text-shadow: 0 0 6px var(--resource-color);
+}
+
+.resource-desc {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ========================================
+   STEP 4: GOAL
+   ======================================== */
+
+.step-goal {
+  text-align: center;
+}
+
+.step-goal .goal-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--accent-gold);
+  text-shadow: 0 0 20px var(--accent-gold);
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+.goal-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  max-width: 320px;
+  margin: 0 auto 24px;
+}
+
+.goal-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.goal-bullet {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-gold);
+  box-shadow: 0 0 8px var(--accent-gold);
+  flex-shrink: 0;
+}
+
+.goal-footer {
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.goal-warning {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+
+.progress-container {
+  position: relative;
+  margin: 24px 0 20px;
+}
+
+.progress-track {
+  display: flex;
+  justify-content: space-between;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  padding: 0 4px;
+  z-index: 2;
+}
+
+.progress-tick {
+  width: 8px;
+  height: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  transition: all 200ms ease-out;
+}
+
+.progress-tick.active {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 8px var(--accent-gold);
+}
+
+.progress-fill {
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-bronze));
+  box-shadow: 0 0 10px var(--accent-gold);
+  transition: width 200ms ease-out;
+  animation: progress-glow 2s infinite;
+}
+
+@keyframes progress-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px var(--accent-gold);
+  }
+  50% {
+    box-shadow: 0 0 15px var(--accent-gold), 0 0 25px var(--accent-bronze);
+  }
+}
+
+/* ========================================
+   FOOTER BUTTONS
+   ======================================== */
+
+.onboarding-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.btn-skip {
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: color 120ms ease-out;
+  text-transform: uppercase;
+}
+
+.btn-skip:hover {
+  color: var(--text-secondary);
+}
+
+.btn-group {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-back {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 120ms ease-out;
+  text-transform: uppercase;
+}
+
+.btn-back:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-tertiary);
+}
+
+.btn-next {
+  padding: 10px 24px;
+  background: var(--accent-crimson);
+  border: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 120ms ease-out;
+  text-transform: uppercase;
+  box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
+}
+
+.btn-next:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(139, 0, 0, 0.5);
+}
+
+.btn-next.btn-enter {
+  background: linear-gradient(135deg, var(--accent-crimson), var(--accent-gold));
+  box-shadow:
+    0 0 20px rgba(139, 0, 0, 0.3),
+    0 0 20px rgba(201, 168, 76, 0.2);
+}
+
+.btn-next.btn-enter:hover {
+  box-shadow:
+    0 0 30px rgba(139, 0, 0, 0.5),
+    0 0 30px rgba(201, 168, 76, 0.4);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 520px) {
+  .onboarding-modal {
+    padding: 20px;
+  }
+
+  .step-title {
+    font-size: 24px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .nations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nations-grid .nation-card:last-child:nth-child(odd) {
+    max-width: 100%;
+  }
+
+  .resources-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .step-goal .goal-title {
+    font-size: 20px;
+  }
+
+  .goal-list {
+    max-width: 100%;
+  }
+}

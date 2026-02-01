@@ -1,0 +1,241 @@
+/* World Entry Screen - Medieval Loading Animation */
+
+.world-entry-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 500ms ease-out;
+}
+
+.world-entry-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.entry-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-void);
+}
+
+.entry-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Medieval glow text container */
+.entry-glitch-container {
+  position: relative;
+  z-index: 10;
+}
+
+.entry-glitch-text {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 8vw, 5rem);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  text-shadow: 0 0 30px rgba(201, 168, 76, 0.5);
+  position: relative;
+  animation: entry-text-glow 2s ease-in-out infinite;
+}
+
+.entry-glitch-text::before,
+.entry-glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.entry-glitch-text::before {
+  color: var(--accent-gold);
+  text-shadow: 0 0 20px var(--accent-gold);
+  animation: entry-glow-gold 2s ease-in-out infinite;
+}
+
+.entry-glitch-text::after {
+  color: var(--accent-crimson);
+  text-shadow: 0 0 20px var(--accent-crimson);
+  animation: entry-glow-crimson 2s ease-in-out infinite;
+}
+
+@keyframes entry-text-glow {
+  0%, 85%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  87% { transform: translate3d(-2px, 0, 0); }
+  89% { transform: translate3d(2px, 0, 0); }
+  91% { transform: translate3d(-1px, 0, 0); }
+  93% { transform: translate3d(1px, 0, 0); }
+}
+
+@keyframes entry-glow-gold {
+  0%, 80%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  82% {
+    opacity: 0.6;
+    transform: translate3d(-3px, -1px, 0);
+  }
+  84% {
+    opacity: 0.4;
+    transform: translate3d(2px, 1px, 0);
+  }
+  86% {
+    opacity: 0.3;
+    transform: translate3d(-1px, 1px, 0);
+  }
+  88% {
+    opacity: 0.1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes entry-glow-crimson {
+  0%, 82%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  84% {
+    opacity: 0.5;
+    transform: translate3d(3px, 1px, 0);
+  }
+  86% {
+    opacity: 0.4;
+    transform: translate3d(-2px, -1px, 0);
+  }
+  88% {
+    opacity: 0.2;
+    transform: translate3d(1px, -1px, 0);
+  }
+  90% {
+    opacity: 0.1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Medieval shimmer bars */
+.entry-glitch-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 168, 76, 0.15) 25%,
+    transparent 50%,
+    rgba(139, 0, 0, 0.12) 75%,
+    transparent 100%
+  );
+  will-change: transform, opacity, height;
+}
+
+.entry-glitch-bar:nth-child(2) {
+  top: 20%;
+  animation: entry-bar 2s ease-in-out infinite;
+}
+
+.entry-glitch-bar:nth-child(3) {
+  top: 50%;
+  animation: entry-bar 2s ease-in-out infinite 0.3s;
+}
+
+.entry-glitch-bar:nth-child(4) {
+  top: 80%;
+  animation: entry-bar 2s ease-in-out infinite 0.6s;
+}
+
+@keyframes entry-bar {
+  0%, 85%, 100% {
+    height: 0;
+    opacity: 0;
+  }
+  87%, 93% {
+    height: 6px;
+    opacity: 0.6;
+    transform: translate3d(-3px, 0, 0);
+  }
+  90% {
+    transform: translate3d(3px, 0, 0);
+  }
+}
+
+/* Subtle parchment texture overlay */
+.entry-scan-line {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(201, 168, 76, 0.02) 20%,
+    rgba(201, 168, 76, 0.06) 40%,
+    rgba(240, 232, 216, 0.15) 50%,
+    rgba(201, 168, 76, 0.06) 60%,
+    rgba(201, 168, 76, 0.02) 80%,
+    transparent 100%
+  );
+  animation: entry-scan 2.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.entry-scan-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--accent-gold);
+  box-shadow:
+    0 0 6px var(--accent-gold),
+    0 0 12px rgba(201, 168, 76, 0.4);
+}
+
+@keyframes entry-scan {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, calc(100vh + 200px), 0);
+    opacity: 0;
+  }
+}
+
+/* Parchment noise overlay */
+.entry-noise {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  animation: entry-noise-flicker 0.5s steps(5) infinite;
+}
+
+@keyframes entry-noise-flicker {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.04; }
+}

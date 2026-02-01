@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Five kingdoms. One empire. Endless conquest." />
+    <title>AGENTROPOLIS</title>
+
+    <!-- Fonts: Medieval Display + Body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+      /* ========================================
+         AGENTROPOLIS MEDIEVAL EMPIRE DESIGN SYSTEM
+         ======================================== */
+
+      :root {
+        /* Background Layers */
+        --bg-void: #1a1209;
+        --bg-primary: #221a0f;
+        --bg-secondary: #2a2015;
+        --bg-tertiary: #36291c;
+        --bg-surface: #443420;
+
+        /* Text */
+        --text-primary: #f0e8d8;
+        --text-secondary: #b8a890;
+        --text-muted: #786850;
+        --text-dim: #584830;
+
+        /* Medieval Accents */
+        --accent-gold: #c9a84c;
+        --accent-crimson: #8b0000;
+        --accent-forest: #2d5a27;
+        --accent-steel: #708090;
+        --accent-royal: #4b0082;
+        --accent-bronze: #cd7f32;
+
+        /* Kingdom Colors */
+        --claude-nation-primary: #8b2500;
+        --claude-nation-secondary: #a0392a;
+        --claude-nation-bg: rgba(139, 37, 0, 0.1);
+
+        --openai-empire-primary: #8b8b00;
+        --openai-empire-secondary: #a0a030;
+        --openai-empire-bg: rgba(139, 139, 0, 0.1);
+
+        --gemini-republic-primary: #2d5a27;
+        --gemini-republic-secondary: #3d7a37;
+        --gemini-republic-bg: rgba(45, 90, 39, 0.1);
+
+        --grok-syndicate-primary: #c9a84c;
+        --grok-syndicate-secondary: #dbc06c;
+        --grok-syndicate-bg: rgba(201, 168, 76, 0.1);
+
+        --open-frontier-primary: #4682b4;
+        --open-frontier-secondary: #5a9cc4;
+        --open-frontier-bg: rgba(70, 130, 180, 0.1);
+
+        /* Status */
+        --success: #22c55e;
+        --warning: #eab308;
+        --error: #ef4444;
+        --info: #3b82f6;
+
+        /* Typography */
+        --font-display: 'Cinzel', 'Garamond', serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+
+        /* Spacing */
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+        --space-xl: 2rem;
+        --space-2xl: 3rem;
+
+        /* Borders */
+        --border-color: rgba(201, 168, 76, 0.15);
+        --border-glow: rgba(201, 168, 76, 0.3);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--bg-void);
+        color: var(--text-primary);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      #root {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      /* Parchment Vignette Overlay — hidden in-game */
+      #root::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 18, 9, 0.4) 100%);
+        pointer-events: none;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      body.in-game #root::after {
+        opacity: 0 !important;
+        display: none;
+      }
+
+      /* Reveal Animation */
+      @keyframes reveal {
+        0% { opacity: 0; transform: translateY(10px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Flicker Animation */
+      @keyframes flicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+        20%, 24%, 55% { opacity: 0.8; }
+      }
+
+      /* Pulse Glow */
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
+        50% { box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor; }
+      }
+
+      /* Ticker Scroll */
+      @keyframes ticker {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+
+      /* Spin */
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Selection */
+      ::selection {
+        background: var(--accent-gold);
+        color: var(--bg-void);
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-gold);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

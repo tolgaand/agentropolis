@@ -1,0 +1,21 @@
+node_modules
+dist
+build
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+*.tsbuildinfo
+.turbo
+coverage
+
+# Deploy
+deploy/
+
+# AI agent files
+CLAUDE.md
+AGENTS.md
+.claude/
+development/
+.claude-mem/

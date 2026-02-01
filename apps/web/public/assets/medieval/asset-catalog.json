@@ -1,0 +1,1622 @@
+{
+  "categories": {
+    "houses": [
+      "House_7_3",
+      "House_7_2",
+      "House_7_1",
+      "House_6_2",
+      "House_6_1",
+      "House_5_3",
+      "House_5_2",
+      "House_5_1",
+      "House_4_2",
+      "House_4_1",
+      "House_3_2",
+      "House_3_1",
+      "House_2_3",
+      "House_2_2",
+      "House_2_1",
+      "House_1_2",
+      "House_1_1"
+    ],
+    "castle": [
+      "Castle_Roof_1",
+      "Castle_Roof_2",
+      "Castle_Tower_1",
+      "Castle_Tower_2",
+      "Castle_Tower_3",
+      "Castle_Tower_4",
+      "Castle_Tower_5",
+      "Castle_Tower_6",
+      "Castle_Tower_Door",
+      "Castle_Wall_Door",
+      "Castle_Entrance._2",
+      "Castle_Entrance",
+      "Castle_Wall"
+    ],
+    "church": [
+      "Church_1",
+      "Church_2"
+    ],
+    "assets": [
+      "Barrel",
+      "Boat",
+      "Box",
+      "Bridge",
+      "Cart",
+      "Cart_1",
+      "Cart_2",
+      "Food_Box_1",
+      "Food_Box_2",
+      "Food_Box_3",
+      "Wood_Fence_3",
+      "Wood_Fence_2",
+      "Wood_Fence_1",
+      "Well",
+      "Straw",
+      "Ship_2",
+      "Ship_1",
+      "Sack",
+      "Post",
+      "Port_Stake",
+      "Port_2",
+      "Port"
+    ],
+    "market": [
+      "Market_2_6",
+      "Market_2_5",
+      "Market_2_4",
+      "Market_2_3",
+      "Market_2_2",
+      "Market_2_1",
+      "Market_1_6",
+      "Market_1_5",
+      "Market_1_4",
+      "Market_1_3",
+      "Market_1_2",
+      "Market_1_1"
+    ],
+    "environment": [
+      "Grass_Blades_2",
+      "Tree_8",
+      "Tree_7",
+      "Tree_6",
+      "Tree_5",
+      "Ground_Bricks",
+      "Tree_Base",
+      "Grass_Blade",
+      "Grass_Blades_1",
+      "Tree_2",
+      "Tree_1",
+      "Tree_4",
+      "Tree_3",
+      "Stone_3",
+      "Stone_4",
+      "Stone_2",
+      "Stone_1",
+      "Water",
+      "Ground_3",
+      "Ground_3_Alpha",
+      "Ground_2_Alpha",
+      "Ground_1_Alpha",
+      "Ground_2",
+      "Ground_1",
+      "Grass_2_Alpha",
+      "Stairs",
+      "Wall",
+      "Grass_2",
+      "Grass_1_Alpha",
+      "Grass_1",
+      "City_Ground",
+      "City_Ground_Alpha"
+    ],
+    "people": [
+      "Armor_2_Lance",
+      "Armor_1_Lance",
+      "Warrior_5",
+      "Man_9_Cargo",
+      "Man_9_Hunter",
+      "Man_9_Farmer",
+      "Man_7_Talking",
+      "Man_7_Hunting",
+      "Man_7_Sitting",
+      "Man_6_Walking",
+      "Man_6_Cargo",
+      "Man_6_Farming",
+      "Man_5_Sitting",
+      "Man_5_Walking",
+      "Man_5_Talking",
+      "Woman_2_Talking",
+      "Woman_3_Talking",
+      "Woman_1_Talking",
+      "Warrior_4",
+      "Man_4_Sitting",
+      "Man_4_Cargo",
+      "Man_4_Talking",
+      "Man_3_Cargo",
+      "Man_3_Walking_2",
+      "Man_3_Walking_1",
+      "Woman_1_Fighting",
+      "Woman_1_Cargo",
+      "Woman_1_Farming",
+      "Woman_1_Walking_2",
+      "Woman_1_Walking_1",
+      "Woman_2_Fighting",
+      "Woman_2_Cargo",
+      "Woman_2_Farming",
+      "Woman_2_Walking_2",
+      "Woman_2_Walking_1",
+      "Woman_3_Sitting",
+      "Woman_3_Cargo",
+      "Woman_3_Farming",
+      "Woman_3_Walking_2",
+      "Woman_3_Walking_1",
+      "Warrior_3",
+      "Warrior_2",
+      "Warrior_1",
+      "Man_2_Cargo",
+      "Man_2_Walking_2",
+      "Man_2_Walking_1",
+      "Farmer_1_2",
+      "Man_1_Walking",
+      "Farmer_1",
+      "Armor_1_Walking",
+      "Armor_1_Guard",
+      "Armor_1_Combat",
+      "Armor_2_T",
+      "Armor_2_Walking",
+      "Armor_2_Guard",
+      "Armor_2_combat",
+      "General",
+      "Archer_T",
+      "Archer_2",
+      "Archer_1",
+      "Man_7",
+      "Man_6",
+      "Man_5",
+      "Man_4",
+      "Man_3",
+      "Man_2",
+      "Man_1_T",
+      "Back_Bag",
+      "Farm_Tool",
+      "Basket",
+      "Hat",
+      "Shield",
+      "Lance",
+      "Sword",
+      "Bow",
+      "Armor_1",
+      "Woman_3",
+      "Woman_2",
+      "Woman_1",
+      "Man_9"
+    ]
+  },
+  "assets": [
+    {
+      "id": "house_7_3",
+      "name": "House_7_3",
+      "category": "houses",
+      "meshIndex": 0,
+      "nodeIndex": 1,
+      "childNodeIndex": 0
+    },
+    {
+      "id": "house_7_2",
+      "name": "House_7_2",
+      "category": "houses",
+      "meshIndex": 1,
+      "nodeIndex": 3,
+      "childNodeIndex": 2
+    },
+    {
+      "id": "house_7_1",
+      "name": "House_7_1",
+      "category": "houses",
+      "meshIndex": 2,
+      "nodeIndex": 5,
+      "childNodeIndex": 4
+    },
+    {
+      "id": "house_6_2",
+      "name": "House_6_2",
+      "category": "houses",
+      "meshIndex": 3,
+      "nodeIndex": 7,
+      "childNodeIndex": 6
+    },
+    {
+      "id": "house_6_1",
+      "name": "House_6_1",
+      "category": "houses",
+      "meshIndex": 4,
+      "nodeIndex": 9,
+      "childNodeIndex": 8
+    },
+    {
+      "id": "house_5_3",
+      "name": "House_5_3",
+      "category": "houses",
+      "meshIndex": 5,
+      "nodeIndex": 11,
+      "childNodeIndex": 10
+    },
+    {
+      "id": "house_5_2",
+      "name": "House_5_2",
+      "category": "houses",
+      "meshIndex": 6,
+      "nodeIndex": 13,
+      "childNodeIndex": 12
+    },
+    {
+      "id": "house_5_1",
+      "name": "House_5_1",
+      "category": "houses",
+      "meshIndex": 7,
+      "nodeIndex": 15,
+      "childNodeIndex": 14
+    },
+    {
+      "id": "house_4_2",
+      "name": "House_4_2",
+      "category": "houses",
+      "meshIndex": 8,
+      "nodeIndex": 17,
+      "childNodeIndex": 16
+    },
+    {
+      "id": "house_4_1",
+      "name": "House_4_1",
+      "category": "houses",
+      "meshIndex": 9,
+      "nodeIndex": 19,
+      "childNodeIndex": 18
+    },
+    {
+      "id": "house_3_2",
+      "name": "House_3_2",
+      "category": "houses",
+      "meshIndex": 10,
+      "nodeIndex": 21,
+      "childNodeIndex": 20
+    },
+    {
+      "id": "house_3_1",
+      "name": "House_3_1",
+      "category": "houses",
+      "meshIndex": 11,
+      "nodeIndex": 23,
+      "childNodeIndex": 22
+    },
+    {
+      "id": "house_2_3",
+      "name": "House_2_3",
+      "category": "houses",
+      "meshIndex": 12,
+      "nodeIndex": 25,
+      "childNodeIndex": 24
+    },
+    {
+      "id": "house_2_2",
+      "name": "House_2_2",
+      "category": "houses",
+      "meshIndex": 13,
+      "nodeIndex": 27,
+      "childNodeIndex": 26
+    },
+    {
+      "id": "house_2_1",
+      "name": "House_2_1",
+      "category": "houses",
+      "meshIndex": 14,
+      "nodeIndex": 29,
+      "childNodeIndex": 28
+    },
+    {
+      "id": "house_1_2",
+      "name": "House_1_2",
+      "category": "houses",
+      "meshIndex": 15,
+      "nodeIndex": 31,
+      "childNodeIndex": 30
+    },
+    {
+      "id": "house_1_1",
+      "name": "House_1_1",
+      "category": "houses",
+      "meshIndex": 16,
+      "nodeIndex": 33,
+      "childNodeIndex": 32
+    },
+    {
+      "id": "castle_roof_1",
+      "name": "Castle_Roof_1",
+      "category": "castle",
+      "meshIndex": 17,
+      "nodeIndex": 35,
+      "childNodeIndex": 34
+    },
+    {
+      "id": "castle_roof_2",
+      "name": "Castle_Roof_2",
+      "category": "castle",
+      "meshIndex": 18,
+      "nodeIndex": 37,
+      "childNodeIndex": 36
+    },
+    {
+      "id": "castle_tower_1",
+      "name": "Castle_Tower_1",
+      "category": "castle",
+      "meshIndex": 19,
+      "nodeIndex": 39,
+      "childNodeIndex": 38
+    },
+    {
+      "id": "castle_tower_2",
+      "name": "Castle_Tower_2",
+      "category": "castle",
+      "meshIndex": 20,
+      "nodeIndex": 41,
+      "childNodeIndex": 40
+    },
+    {
+      "id": "castle_tower_3",
+      "name": "Castle_Tower_3",
+      "category": "castle",
+      "meshIndex": 21,
+      "nodeIndex": 43,
+      "childNodeIndex": 42
+    },
+    {
+      "id": "castle_tower_4",
+      "name": "Castle_Tower_4",
+      "category": "castle",
+      "meshIndex": 22,
+      "nodeIndex": 45,
+      "childNodeIndex": 44
+    },
+    {
+      "id": "castle_tower_5",
+      "name": "Castle_Tower_5",
+      "category": "castle",
+      "meshIndex": 23,
+      "nodeIndex": 47,
+      "childNodeIndex": 46
+    },
+    {
+      "id": "castle_tower_6",
+      "name": "Castle_Tower_6",
+      "category": "castle",
+      "meshIndex": 24,
+      "nodeIndex": 49,
+      "childNodeIndex": 48
+    },
+    {
+      "id": "castle_tower_door",
+      "name": "Castle_Tower_Door",
+      "category": "castle",
+      "meshIndex": 25,
+      "nodeIndex": 51,
+      "childNodeIndex": 50
+    },
+    {
+      "id": "castle_wall_door",
+      "name": "Castle_Wall_Door",
+      "category": "castle",
+      "meshIndex": 26,
+      "nodeIndex": 53,
+      "childNodeIndex": 52
+    },
+    {
+      "id": "church_1",
+      "name": "Church_1",
+      "category": "church",
+      "meshIndex": 27,
+      "nodeIndex": 55,
+      "childNodeIndex": 54
+    },
+    {
+      "id": "church_2",
+      "name": "Church_2",
+      "category": "church",
+      "meshIndex": 28,
+      "nodeIndex": 57,
+      "childNodeIndex": 56
+    },
+    {
+      "id": "barrel",
+      "name": "Barrel",
+      "category": "assets",
+      "meshIndex": 29,
+      "nodeIndex": 59,
+      "childNodeIndex": 58
+    },
+    {
+      "id": "boat",
+      "name": "Boat",
+      "category": "assets",
+      "meshIndex": 30,
+      "nodeIndex": 61,
+      "childNodeIndex": 60
+    },
+    {
+      "id": "box",
+      "name": "Box",
+      "category": "assets",
+      "meshIndex": 31,
+      "nodeIndex": 63,
+      "childNodeIndex": 62
+    },
+    {
+      "id": "bridge",
+      "name": "Bridge",
+      "category": "assets",
+      "meshIndex": 32,
+      "nodeIndex": 65,
+      "childNodeIndex": 64
+    },
+    {
+      "id": "cart",
+      "name": "Cart",
+      "category": "assets",
+      "meshIndex": 33,
+      "nodeIndex": 67,
+      "childNodeIndex": 66
+    },
+    {
+      "id": "cart_1",
+      "name": "Cart_1",
+      "category": "assets",
+      "meshIndex": 34,
+      "nodeIndex": 69,
+      "childNodeIndex": 68
+    },
+    {
+      "id": "cart_2",
+      "name": "Cart_2",
+      "category": "assets",
+      "meshIndex": 35,
+      "nodeIndex": 71,
+      "childNodeIndex": 70
+    },
+    {
+      "id": "food_box_1",
+      "name": "Food_Box_1",
+      "category": "assets",
+      "meshIndex": 36,
+      "nodeIndex": 73,
+      "childNodeIndex": 72
+    },
+    {
+      "id": "food_box_2",
+      "name": "Food_Box_2",
+      "category": "assets",
+      "meshIndex": 37,
+      "nodeIndex": 75,
+      "childNodeIndex": 74
+    },
+    {
+      "id": "food_box_3",
+      "name": "Food_Box_3",
+      "category": "assets",
+      "meshIndex": 38,
+      "nodeIndex": 77,
+      "childNodeIndex": 76
+    },
+    {
+      "id": "wood_fence_3",
+      "name": "Wood_Fence_3",
+      "category": "assets",
+      "meshIndex": 39,
+      "nodeIndex": 79,
+      "childNodeIndex": 78
+    },
+    {
+      "id": "wood_fence_2",
+      "name": "Wood_Fence_2",
+      "category": "assets",
+      "meshIndex": 40,
+      "nodeIndex": 81,
+      "childNodeIndex": 80
+    },
+    {
+      "id": "wood_fence_1",
+      "name": "Wood_Fence_1",
+      "category": "assets",
+      "meshIndex": 41,
+      "nodeIndex": 83,
+      "childNodeIndex": 82
+    },
+    {
+      "id": "well",
+      "name": "Well",
+      "category": "assets",
+      "meshIndex": 42,
+      "nodeIndex": 85,
+      "childNodeIndex": 84
+    },
+    {
+      "id": "straw",
+      "name": "Straw",
+      "category": "assets",
+      "meshIndex": 43,
+      "nodeIndex": 87,
+      "childNodeIndex": 86
+    },
+    {
+      "id": "ship_2",
+      "name": "Ship_2",
+      "category": "assets",
+      "meshIndex": 44,
+      "nodeIndex": 89,
+      "childNodeIndex": 88
+    },
+    {
+      "id": "ship_1",
+      "name": "Ship_1",
+      "category": "assets",
+      "meshIndex": 45,
+      "nodeIndex": 91,
+      "childNodeIndex": 90
+    },
+    {
+      "id": "sack",
+      "name": "Sack",
+      "category": "assets",
+      "meshIndex": 46,
+      "nodeIndex": 93,
+      "childNodeIndex": 92
+    },
+    {
+      "id": "post",
+      "name": "Post",
+      "category": "assets",
+      "meshIndex": 47,
+      "nodeIndex": 95,
+      "childNodeIndex": 94
+    },
+    {
+      "id": "port_stake",
+      "name": "Port_Stake",
+      "category": "assets",
+      "meshIndex": 48,
+      "nodeIndex": 97,
+      "childNodeIndex": 96
+    },
+    {
+      "id": "port_2",
+      "name": "Port_2",
+      "category": "assets",
+      "meshIndex": 49,
+      "nodeIndex": 99,
+      "childNodeIndex": 98
+    },
+    {
+      "id": "port",
+      "name": "Port",
+      "category": "assets",
+      "meshIndex": 50,
+      "nodeIndex": 101,
+      "childNodeIndex": 100
+    },
+    {
+      "id": "market_2_6",
+      "name": "Market_2_6",
+      "category": "market",
+      "meshIndex": 51,
+      "nodeIndex": 103,
+      "childNodeIndex": 102
+    },
+    {
+      "id": "market_2_5",
+      "name": "Market_2_5",
+      "category": "market",
+      "meshIndex": 52,
+      "nodeIndex": 105,
+      "childNodeIndex": 104
+    },
+    {
+      "id": "market_2_4",
+      "name": "Market_2_4",
+      "category": "market",
+      "meshIndex": 53,
+      "nodeIndex": 107,
+      "childNodeIndex": 106
+    },
+    {
+      "id": "market_2_3",
+      "name": "Market_2_3",
+      "category": "market",
+      "meshIndex": 54,
+      "nodeIndex": 109,
+      "childNodeIndex": 108
+    },
+    {
+      "id": "market_2_2",
+      "name": "Market_2_2",
+      "category": "market",
+      "meshIndex": 55,
+      "nodeIndex": 111,
+      "childNodeIndex": 110
+    },
+    {
+      "id": "market_2_1",
+      "name": "Market_2_1",
+      "category": "market",
+      "meshIndex": 56,
+      "nodeIndex": 113,
+      "childNodeIndex": 112
+    },
+    {
+      "id": "market_1_6",
+      "name": "Market_1_6",
+      "category": "market",
+      "meshIndex": 57,
+      "nodeIndex": 115,
+      "childNodeIndex": 114
+    },
+    {
+      "id": "market_1_5",
+      "name": "Market_1_5",
+      "category": "market",
+      "meshIndex": 58,
+      "nodeIndex": 117,
+      "childNodeIndex": 116
+    },
+    {
+      "id": "market_1_4",
+      "name": "Market_1_4",
+      "category": "market",
+      "meshIndex": 59,
+      "nodeIndex": 119,
+      "childNodeIndex": 118
+    },
+    {
+      "id": "market_1_3",
+      "name": "Market_1_3",
+      "category": "market",
+      "meshIndex": 60,
+      "nodeIndex": 121,
+      "childNodeIndex": 120
+    },
+    {
+      "id": "market_1_2",
+      "name": "Market_1_2",
+      "category": "market",
+      "meshIndex": 61,
+      "nodeIndex": 123,
+      "childNodeIndex": 122
+    },
+    {
+      "id": "market_1_1",
+      "name": "Market_1_1",
+      "category": "market",
+      "meshIndex": 62,
+      "nodeIndex": 125,
+      "childNodeIndex": 124
+    },
+    {
+      "id": "grass_blades_2",
+      "name": "Grass_Blades_2",
+      "category": "environment",
+      "meshIndex": 63,
+      "nodeIndex": 128,
+      "childNodeIndex": 127
+    },
+    {
+      "id": "tree_8",
+      "name": "Tree_8",
+      "category": "environment",
+      "meshIndex": 64,
+      "nodeIndex": 130,
+      "childNodeIndex": 129
+    },
+    {
+      "id": "tree_7",
+      "name": "Tree_7",
+      "category": "environment",
+      "meshIndex": 65,
+      "nodeIndex": 132,
+      "childNodeIndex": 131
+    },
+    {
+      "id": "tree_6",
+      "name": "Tree_6",
+      "category": "environment",
+      "meshIndex": 66,
+      "nodeIndex": 134,
+      "childNodeIndex": 133
+    },
+    {
+      "id": "tree_5",
+      "name": "Tree_5",
+      "category": "environment",
+      "meshIndex": 67,
+      "nodeIndex": 136,
+      "childNodeIndex": 135
+    },
+    {
+      "id": "ground_bricks",
+      "name": "Ground_Bricks",
+      "category": "environment",
+      "meshIndex": 68,
+      "nodeIndex": 138,
+      "childNodeIndex": 137
+    },
+    {
+      "id": "tree_base",
+      "name": "Tree_Base",
+      "category": "environment",
+      "meshIndex": 69,
+      "nodeIndex": 140,
+      "childNodeIndex": 139
+    },
+    {
+      "id": "grass_blade",
+      "name": "Grass_Blade",
+      "category": "environment",
+      "meshIndex": 70,
+      "nodeIndex": 142,
+      "childNodeIndex": 141
+    },
+    {
+      "id": "grass_blades_1",
+      "name": "Grass_Blades_1",
+      "category": "environment",
+      "meshIndex": 71,
+      "nodeIndex": 144,
+      "childNodeIndex": 143
+    },
+    {
+      "id": "tree_2",
+      "name": "Tree_2",
+      "category": "environment",
+      "meshIndex": 72,
+      "nodeIndex": 146,
+      "childNodeIndex": 145
+    },
+    {
+      "id": "tree_1",
+      "name": "Tree_1",
+      "category": "environment",
+      "meshIndex": 73,
+      "nodeIndex": 148,
+      "childNodeIndex": 147
+    },
+    {
+      "id": "tree_4",
+      "name": "Tree_4",
+      "category": "environment",
+      "meshIndex": 74,
+      "nodeIndex": 150,
+      "childNodeIndex": 149
+    },
+    {
+      "id": "tree_3",
+      "name": "Tree_3",
+      "category": "environment",
+      "meshIndex": 75,
+      "nodeIndex": 152,
+      "childNodeIndex": 151
+    },
+    {
+      "id": "stone_3",
+      "name": "Stone_3",
+      "category": "environment",
+      "meshIndex": 76,
+      "nodeIndex": 154,
+      "childNodeIndex": 153
+    },
+    {
+      "id": "stone_4",
+      "name": "Stone_4",
+      "category": "environment",
+      "meshIndex": 77,
+      "nodeIndex": 156,
+      "childNodeIndex": 155
+    },
+    {
+      "id": "stone_2",
+      "name": "Stone_2",
+      "category": "environment",
+      "meshIndex": 78,
+      "nodeIndex": 158,
+      "childNodeIndex": 157
+    },
+    {
+      "id": "stone_1",
+      "name": "Stone_1",
+      "category": "environment",
+      "meshIndex": 79,
+      "nodeIndex": 160,
+      "childNodeIndex": 159
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "category": "environment",
+      "meshIndex": 80,
+      "nodeIndex": 162,
+      "childNodeIndex": 161
+    },
+    {
+      "id": "ground_3",
+      "name": "Ground_3",
+      "category": "environment",
+      "meshIndex": 81,
+      "nodeIndex": 164,
+      "childNodeIndex": 163
+    },
+    {
+      "id": "ground_3_alpha",
+      "name": "Ground_3_Alpha",
+      "category": "environment",
+      "meshIndex": 82,
+      "nodeIndex": 166,
+      "childNodeIndex": 165
+    },
+    {
+      "id": "ground_2_alpha",
+      "name": "Ground_2_Alpha",
+      "category": "environment",
+      "meshIndex": 83,
+      "nodeIndex": 168,
+      "childNodeIndex": 167
+    },
+    {
+      "id": "ground_1_alpha",
+      "name": "Ground_1_Alpha",
+      "category": "environment",
+      "meshIndex": 84,
+      "nodeIndex": 170,
+      "childNodeIndex": 169
+    },
+    {
+      "id": "ground_2",
+      "name": "Ground_2",
+      "category": "environment",
+      "meshIndex": 85,
+      "nodeIndex": 172,
+      "childNodeIndex": 171
+    },
+    {
+      "id": "ground_1",
+      "name": "Ground_1",
+      "category": "environment",
+      "meshIndex": 86,
+      "nodeIndex": 174,
+      "childNodeIndex": 173
+    },
+    {
+      "id": "grass_2_alpha",
+      "name": "Grass_2_Alpha",
+      "category": "environment",
+      "meshIndex": 87,
+      "nodeIndex": 176,
+      "childNodeIndex": 175
+    },
+    {
+      "id": "stairs",
+      "name": "Stairs",
+      "category": "environment",
+      "meshIndex": 88,
+      "nodeIndex": 178,
+      "childNodeIndex": 177
+    },
+    {
+      "id": "wall",
+      "name": "Wall",
+      "category": "environment",
+      "meshIndex": 89,
+      "nodeIndex": 180,
+      "childNodeIndex": 179
+    },
+    {
+      "id": "grass_2",
+      "name": "Grass_2",
+      "category": "environment",
+      "meshIndex": 90,
+      "nodeIndex": 182,
+      "childNodeIndex": 181
+    },
+    {
+      "id": "grass_1_alpha",
+      "name": "Grass_1_Alpha",
+      "category": "environment",
+      "meshIndex": 91,
+      "nodeIndex": 184,
+      "childNodeIndex": 183
+    },
+    {
+      "id": "grass_1",
+      "name": "Grass_1",
+      "category": "environment",
+      "meshIndex": 92,
+      "nodeIndex": 186,
+      "childNodeIndex": 185
+    },
+    {
+      "id": "city_ground",
+      "name": "City_Ground",
+      "category": "environment",
+      "meshIndex": 93,
+      "nodeIndex": 188,
+      "childNodeIndex": 187
+    },
+    {
+      "id": "city_ground_alpha",
+      "name": "City_Ground_Alpha",
+      "category": "environment",
+      "meshIndex": 94,
+      "nodeIndex": 190,
+      "childNodeIndex": 189
+    },
+    {
+      "id": "armor_2_lance",
+      "name": "Armor_2_Lance",
+      "category": "people",
+      "meshIndex": 95,
+      "nodeIndex": 193,
+      "childNodeIndex": 192
+    },
+    {
+      "id": "armor_1_lance",
+      "name": "Armor_1_Lance",
+      "category": "people",
+      "meshIndex": 96,
+      "nodeIndex": 195,
+      "childNodeIndex": 194
+    },
+    {
+      "id": "warrior_5",
+      "name": "Warrior_5",
+      "category": "people",
+      "meshIndex": 97,
+      "nodeIndex": 197,
+      "childNodeIndex": 196
+    },
+    {
+      "id": "man_9_cargo",
+      "name": "Man_9_Cargo",
+      "category": "people",
+      "meshIndex": 98,
+      "nodeIndex": 199,
+      "childNodeIndex": 198
+    },
+    {
+      "id": "man_9_hunter",
+      "name": "Man_9_Hunter",
+      "category": "people",
+      "meshIndex": 99,
+      "nodeIndex": 201,
+      "childNodeIndex": 200
+    },
+    {
+      "id": "man_9_farmer",
+      "name": "Man_9_Farmer",
+      "category": "people",
+      "meshIndex": 100,
+      "nodeIndex": 203,
+      "childNodeIndex": 202
+    },
+    {
+      "id": "man_7_talking",
+      "name": "Man_7_Talking",
+      "category": "people",
+      "meshIndex": 101,
+      "nodeIndex": 205,
+      "childNodeIndex": 204
+    },
+    {
+      "id": "man_7_hunting",
+      "name": "Man_7_Hunting",
+      "category": "people",
+      "meshIndex": 102,
+      "nodeIndex": 207,
+      "childNodeIndex": 206
+    },
+    {
+      "id": "man_7_sitting",
+      "name": "Man_7_Sitting",
+      "category": "people",
+      "meshIndex": 103,
+      "nodeIndex": 209,
+      "childNodeIndex": 208
+    },
+    {
+      "id": "man_6_walking",
+      "name": "Man_6_Walking",
+      "category": "people",
+      "meshIndex": 104,
+      "nodeIndex": 211,
+      "childNodeIndex": 210
+    },
+    {
+      "id": "man_6_cargo",
+      "name": "Man_6_Cargo",
+      "category": "people",
+      "meshIndex": 105,
+      "nodeIndex": 213,
+      "childNodeIndex": 212
+    },
+    {
+      "id": "man_6_farming",
+      "name": "Man_6_Farming",
+      "category": "people",
+      "meshIndex": 106,
+      "nodeIndex": 215,
+      "childNodeIndex": 214
+    },
+    {
+      "id": "man_5_sitting",
+      "name": "Man_5_Sitting",
+      "category": "people",
+      "meshIndex": 107,
+      "nodeIndex": 217,
+      "childNodeIndex": 216
+    },
+    {
+      "id": "man_5_walking",
+      "name": "Man_5_Walking",
+      "category": "people",
+      "meshIndex": 108,
+      "nodeIndex": 219,
+      "childNodeIndex": 218
+    },
+    {
+      "id": "man_5_talking",
+      "name": "Man_5_Talking",
+      "category": "people",
+      "meshIndex": 109,
+      "nodeIndex": 221,
+      "childNodeIndex": 220
+    },
+    {
+      "id": "woman_2_talking",
+      "name": "Woman_2_Talking",
+      "category": "people",
+      "meshIndex": 110,
+      "nodeIndex": 223,
+      "childNodeIndex": 222
+    },
+    {
+      "id": "woman_3_talking",
+      "name": "Woman_3_Talking",
+      "category": "people",
+      "meshIndex": 111,
+      "nodeIndex": 225,
+      "childNodeIndex": 224
+    },
+    {
+      "id": "woman_1_talking",
+      "name": "Woman_1_Talking",
+      "category": "people",
+      "meshIndex": 112,
+      "nodeIndex": 227,
+      "childNodeIndex": 226
+    },
+    {
+      "id": "warrior_4",
+      "name": "Warrior_4",
+      "category": "people",
+      "meshIndex": 113,
+      "nodeIndex": 229,
+      "childNodeIndex": 228
+    },
+    {
+      "id": "man_4_sitting",
+      "name": "Man_4_Sitting",
+      "category": "people",
+      "meshIndex": 114,
+      "nodeIndex": 231,
+      "childNodeIndex": 230
+    },
+    {
+      "id": "man_4_cargo",
+      "name": "Man_4_Cargo",
+      "category": "people",
+      "meshIndex": 115,
+      "nodeIndex": 233,
+      "childNodeIndex": 232
+    },
+    {
+      "id": "man_4_talking",
+      "name": "Man_4_Talking",
+      "category": "people",
+      "meshIndex": 116,
+      "nodeIndex": 235,
+      "childNodeIndex": 234
+    },
+    {
+      "id": "man_3_cargo",
+      "name": "Man_3_Cargo",
+      "category": "people",
+      "meshIndex": 117,
+      "nodeIndex": 237,
+      "childNodeIndex": 236
+    },
+    {
+      "id": "man_3_walking_2",
+      "name": "Man_3_Walking_2",
+      "category": "people",
+      "meshIndex": 118,
+      "nodeIndex": 239,
+      "childNodeIndex": 238
+    },
+    {
+      "id": "man_3_walking_1",
+      "name": "Man_3_Walking_1",
+      "category": "people",
+      "meshIndex": 119,
+      "nodeIndex": 241,
+      "childNodeIndex": 240
+    },
+    {
+      "id": "woman_1_fighting",
+      "name": "Woman_1_Fighting",
+      "category": "people",
+      "meshIndex": 120,
+      "nodeIndex": 243,
+      "childNodeIndex": 242
+    },
+    {
+      "id": "woman_1_cargo",
+      "name": "Woman_1_Cargo",
+      "category": "people",
+      "meshIndex": 121,
+      "nodeIndex": 245,
+      "childNodeIndex": 244
+    },
+    {
+      "id": "woman_1_farming",
+      "name": "Woman_1_Farming",
+      "category": "people",
+      "meshIndex": 122,
+      "nodeIndex": 247,
+      "childNodeIndex": 246
+    },
+    {
+      "id": "woman_1_walking_2",
+      "name": "Woman_1_Walking_2",
+      "category": "people",
+      "meshIndex": 123,
+      "nodeIndex": 249,
+      "childNodeIndex": 248
+    },
+    {
+      "id": "woman_1_walking_1",
+      "name": "Woman_1_Walking_1",
+      "category": "people",
+      "meshIndex": 124,
+      "nodeIndex": 251,
+      "childNodeIndex": 250
+    },
+    {
+      "id": "woman_2_fighting",
+      "name": "Woman_2_Fighting",
+      "category": "people",
+      "meshIndex": 125,
+      "nodeIndex": 253,
+      "childNodeIndex": 252
+    },
+    {
+      "id": "woman_2_cargo",
+      "name": "Woman_2_Cargo",
+      "category": "people",
+      "meshIndex": 126,
+      "nodeIndex": 255,
+      "childNodeIndex": 254
+    },
+    {
+      "id": "woman_2_farming",
+      "name": "Woman_2_Farming",
+      "category": "people",
+      "meshIndex": 127,
+      "nodeIndex": 257,
+      "childNodeIndex": 256
+    },
+    {
+      "id": "woman_2_walking_2",
+      "name": "Woman_2_Walking_2",
+      "category": "people",
+      "meshIndex": 128,
+      "nodeIndex": 259,
+      "childNodeIndex": 258
+    },
+    {
+      "id": "woman_2_walking_1",
+      "name": "Woman_2_Walking_1",
+      "category": "people",
+      "meshIndex": 129,
+      "nodeIndex": 261,
+      "childNodeIndex": 260
+    },
+    {
+      "id": "woman_3_sitting",
+      "name": "Woman_3_Sitting",
+      "category": "people",
+      "meshIndex": 130,
+      "nodeIndex": 263,
+      "childNodeIndex": 262
+    },
+    {
+      "id": "woman_3_cargo",
+      "name": "Woman_3_Cargo",
+      "category": "people",
+      "meshIndex": 131,
+      "nodeIndex": 265,
+      "childNodeIndex": 264
+    },
+    {
+      "id": "woman_3_farming",
+      "name": "Woman_3_Farming",
+      "category": "people",
+      "meshIndex": 132,
+      "nodeIndex": 267,
+      "childNodeIndex": 266
+    },
+    {
+      "id": "woman_3_walking_2",
+      "name": "Woman_3_Walking_2",
+      "category": "people",
+      "meshIndex": 133,
+      "nodeIndex": 269,
+      "childNodeIndex": 268
+    },
+    {
+      "id": "woman_3_walking_1",
+      "name": "Woman_3_Walking_1",
+      "category": "people",
+      "meshIndex": 134,
+      "nodeIndex": 271,
+      "childNodeIndex": 270
+    },
+    {
+      "id": "warrior_3",
+      "name": "Warrior_3",
+      "category": "people",
+      "meshIndex": 135,
+      "nodeIndex": 273,
+      "childNodeIndex": 272
+    },
+    {
+      "id": "warrior_2",
+      "name": "Warrior_2",
+      "category": "people",
+      "meshIndex": 136,
+      "nodeIndex": 275,
+      "childNodeIndex": 274
+    },
+    {
+      "id": "warrior_1",
+      "name": "Warrior_1",
+      "category": "people",
+      "meshIndex": 137,
+      "nodeIndex": 277,
+      "childNodeIndex": 276
+    },
+    {
+      "id": "man_2_cargo",
+      "name": "Man_2_Cargo",
+      "category": "people",
+      "meshIndex": 138,
+      "nodeIndex": 279,
+      "childNodeIndex": 278
+    },
+    {
+      "id": "man_2_walking_2",
+      "name": "Man_2_Walking_2",
+      "category": "people",
+      "meshIndex": 139,
+      "nodeIndex": 281,
+      "childNodeIndex": 280
+    },
+    {
+      "id": "man_2_walking_1",
+      "name": "Man_2_Walking_1",
+      "category": "people",
+      "meshIndex": 140,
+      "nodeIndex": 283,
+      "childNodeIndex": 282
+    },
+    {
+      "id": "farmer_1_2",
+      "name": "Farmer_1_2",
+      "category": "people",
+      "meshIndex": 141,
+      "nodeIndex": 285,
+      "childNodeIndex": 284
+    },
+    {
+      "id": "man_1_walking",
+      "name": "Man_1_Walking",
+      "category": "people",
+      "meshIndex": 142,
+      "nodeIndex": 287,
+      "childNodeIndex": 286
+    },
+    {
+      "id": "farmer_1",
+      "name": "Farmer_1",
+      "category": "people",
+      "meshIndex": 143,
+      "nodeIndex": 289,
+      "childNodeIndex": 288
+    },
+    {
+      "id": "armor_1_walking",
+      "name": "Armor_1_Walking",
+      "category": "people",
+      "meshIndex": 144,
+      "nodeIndex": 291,
+      "childNodeIndex": 290
+    },
+    {
+      "id": "armor_1_guard",
+      "name": "Armor_1_Guard",
+      "category": "people",
+      "meshIndex": 145,
+      "nodeIndex": 293,
+      "childNodeIndex": 292
+    },
+    {
+      "id": "armor_1_combat",
+      "name": "Armor_1_Combat",
+      "category": "people",
+      "meshIndex": 146,
+      "nodeIndex": 295,
+      "childNodeIndex": 294
+    },
+    {
+      "id": "armor_2_t",
+      "name": "Armor_2_T",
+      "category": "people",
+      "meshIndex": 147,
+      "nodeIndex": 297,
+      "childNodeIndex": 296
+    },
+    {
+      "id": "armor_2_walking",
+      "name": "Armor_2_Walking",
+      "category": "people",
+      "meshIndex": 148,
+      "nodeIndex": 299,
+      "childNodeIndex": 298
+    },
+    {
+      "id": "armor_2_guard",
+      "name": "Armor_2_Guard",
+      "category": "people",
+      "meshIndex": 149,
+      "nodeIndex": 301,
+      "childNodeIndex": 300
+    },
+    {
+      "id": "armor_2_combat",
+      "name": "Armor_2_combat",
+      "category": "people",
+      "meshIndex": 150,
+      "nodeIndex": 303,
+      "childNodeIndex": 302
+    },
+    {
+      "id": "general",
+      "name": "General",
+      "category": "people",
+      "meshIndex": 151,
+      "nodeIndex": 305,
+      "childNodeIndex": 304
+    },
+    {
+      "id": "archer_t",
+      "name": "Archer_T",
+      "category": "people",
+      "meshIndex": 152,
+      "nodeIndex": 307,
+      "childNodeIndex": 306
+    },
+    {
+      "id": "archer_2",
+      "name": "Archer_2",
+      "category": "people",
+      "meshIndex": 153,
+      "nodeIndex": 309,
+      "childNodeIndex": 308
+    },
+    {
+      "id": "archer_1",
+      "name": "Archer_1",
+      "category": "people",
+      "meshIndex": 154,
+      "nodeIndex": 311,
+      "childNodeIndex": 310
+    },
+    {
+      "id": "man_7",
+      "name": "Man_7",
+      "category": "people",
+      "meshIndex": 155,
+      "nodeIndex": 313,
+      "childNodeIndex": 312
+    },
+    {
+      "id": "man_6",
+      "name": "Man_6",
+      "category": "people",
+      "meshIndex": 156,
+      "nodeIndex": 315,
+      "childNodeIndex": 314
+    },
+    {
+      "id": "man_5",
+      "name": "Man_5",
+      "category": "people",
+      "meshIndex": 157,
+      "nodeIndex": 317,
+      "childNodeIndex": 316
+    },
+    {
+      "id": "man_4",
+      "name": "Man_4",
+      "category": "people",
+      "meshIndex": 158,
+      "nodeIndex": 319,
+      "childNodeIndex": 318
+    },
+    {
+      "id": "man_3",
+      "name": "Man_3",
+      "category": "people",
+      "meshIndex": 159,
+      "nodeIndex": 321,
+      "childNodeIndex": 320
+    },
+    {
+      "id": "man_2",
+      "name": "Man_2",
+      "category": "people",
+      "meshIndex": 160,
+      "nodeIndex": 323,
+      "childNodeIndex": 322
+    },
+    {
+      "id": "man_1_t",
+      "name": "Man_1_T",
+      "category": "people",
+      "meshIndex": 161,
+      "nodeIndex": 325,
+      "childNodeIndex": 324
+    },
+    {
+      "id": "back_bag",
+      "name": "Back_Bag",
+      "category": "people",
+      "meshIndex": 162,
+      "nodeIndex": 327,
+      "childNodeIndex": 326
+    },
+    {
+      "id": "farm_tool",
+      "name": "Farm_Tool",
+      "category": "people",
+      "meshIndex": 163,
+      "nodeIndex": 329,
+      "childNodeIndex": 328
+    },
+    {
+      "id": "basket",
+      "name": "Basket",
+      "category": "people",
+      "meshIndex": 164,
+      "nodeIndex": 331,
+      "childNodeIndex": 330
+    },
+    {
+      "id": "hat",
+      "name": "Hat",
+      "category": "people",
+      "meshIndex": 165,
+      "nodeIndex": 333,
+      "childNodeIndex": 332
+    },
+    {
+      "id": "shield",
+      "name": "Shield",
+      "category": "people",
+      "meshIndex": 166,
+      "nodeIndex": 335,
+      "childNodeIndex": 334
+    },
+    {
+      "id": "lance",
+      "name": "Lance",
+      "category": "people",
+      "meshIndex": 167,
+      "nodeIndex": 337,
+      "childNodeIndex": 336
+    },
+    {
+      "id": "sword",
+      "name": "Sword",
+      "category": "people",
+      "meshIndex": 168,
+      "nodeIndex": 339,
+      "childNodeIndex": 338
+    },
+    {
+      "id": "bow",
+      "name": "Bow",
+      "category": "people",
+      "meshIndex": 169,
+      "nodeIndex": 341,
+      "childNodeIndex": 340
+    },
+    {
+      "id": "armor_1",
+      "name": "Armor_1",
+      "category": "people",
+      "meshIndex": 170,
+      "nodeIndex": 343,
+      "childNodeIndex": 342
+    },
+    {
+      "id": "woman_3",
+      "name": "Woman_3",
+      "category": "people",
+      "meshIndex": 171,
+      "nodeIndex": 345,
+      "childNodeIndex": 344
+    },
+    {
+      "id": "woman_2",
+      "name": "Woman_2",
+      "category": "people",
+      "meshIndex": 172,
+      "nodeIndex": 347,
+      "childNodeIndex": 346
+    },
+    {
+      "id": "woman_1",
+      "name": "Woman_1",
+      "category": "people",
+      "meshIndex": 173,
+      "nodeIndex": 349,
+      "childNodeIndex": 348
+    },
+    {
+      "id": "man_9",
+      "name": "Man_9",
+      "category": "people",
+      "meshIndex": 174,
+      "nodeIndex": 351,
+      "childNodeIndex": 350
+    },
+    {
+      "id": "castle_entrance._2",
+      "name": "Castle_Entrance._2",
+      "category": "castle",
+      "meshIndex": 175,
+      "nodeIndex": 354,
+      "childNodeIndex": 353
+    },
+    {
+      "id": "castle_entrance",
+      "name": "Castle_Entrance",
+      "category": "castle",
+      "meshIndex": 176,
+      "nodeIndex": 356,
+      "childNodeIndex": 355
+    },
+    {
+      "id": "castle_wall",
+      "name": "Castle_Wall",
+      "category": "castle",
+      "meshIndex": 177,
+      "nodeIndex": 358,
+      "childNodeIndex": 357
+    }
+  ]
+}
