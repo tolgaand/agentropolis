@@ -12,10 +12,13 @@ import * as THREE from 'three';
 import { ThreeCamera } from './ThreeCamera';
 import { ThreeChunks } from './ThreeChunks';
 import { ThreePicking } from './ThreePicking';
-import { ThreeModelLoader } from './ThreeModelLoader';
 import { ThreePostProcessing } from './ThreePostProcessing';
 import { ThreeEffects } from './ThreeEffects';
 import { ThreeSky } from './ThreeSky';
+import { ThreeParcelBorders } from './ThreeParcelBorders';
+import { ThreeFactionIndicators } from './ThreeFactionIndicators';
+import { ThreeAgents } from './ThreeAgents';
+import { buildParcelDecorations, disposeDecorationGroup, type DecorationGroup } from './ThreeDecorations';
 import {
   buildBuildingGroup3D,
   disposeBuildingGroup3D,
@@ -23,11 +26,15 @@ import {
 } from './ThreeBuildings3D';
 import { ThreeBattleEffects, type BattleEffectInput, type AgentPositionMap } from './ThreeBattleEffects';
 import { ThreeTradeEffects, type TradeEffectEvent, type ActiveOfferMarker, type ProsperityData } from './ThreeTradeEffects';
+import { ThreeArmyMarches, type MarchingArmyData } from './ThreeArmyMarches';
+import { ThreeFloatingText, type FloatingTextOptions } from './ThreeFloatingText';
+import { ThreeCaptureEffects, type ContestedParcel } from './ThreeCaptureEffects';
 import {
   BACKGROUND_COLOR,
   LIGHTING,
   TIME_PHASE_LIGHTING,
   TILE_SIZE,
+  CAMERA_ZOOM_COMFORTABLE,
 } from './ThreeConfig';
 import type { RenderableBuilding, RenderableParcel, MapData, MapObject, TimePhase } from '../types';
 
@@ -65,12 +72,12 @@ interface LightingTarget {
   fogDensity: number;
 }
 
-// Fog density per time phase
+// Fog density per time phase (reduced for better visibility)
 const FOG_DENSITY: Record<string, number> = {
-  morning: 0.0015,
-  day: 0.0012,
-  evening: 0.002,
-  night: 0.003,
+  morning: 0.0009,
+  day: 0.0007,
+  evening: 0.0012,
+  night: 0.0018,
 };
 
 export class CityRenderer3D {
@@ -79,7 +86,6 @@ export class CityRenderer3D {
   private cameraController!: ThreeCamera;
   private chunks!: ThreeChunks;
   private picking!: ThreePicking;
-  private modelLoader!: ThreeModelLoader;
   private postProcessing!: ThreePostProcessing;
   private effects!: ThreeEffects;
   private sky!: ThreeSky;
@@ -88,8 +94,15 @@ export class CityRenderer3D {
 
   private buildingGroup: BuildingGroup3D | null = null;
   private parcelGroundGroup: THREE.Group | null = null;
+  private parcelDecorations: Map<string, DecorationGroup> = new Map();
+  private parcelBorders!: ThreeParcelBorders;
+  private factionIndicators!: ThreeFactionIndicators;
+  private agents!: ThreeAgents;
   private battleEffects: ThreeBattleEffects | null = null;
   private tradeEffects: ThreeTradeEffects | null = null;
+  private armyMarches: ThreeArmyMarches | null = null;
+  private floatingText: ThreeFloatingText | null = null;
+  private captureEffects: ThreeCaptureEffects | null = null;
 
   private container: HTMLElement | null = null;
   private rafId = 0;
@@ -105,6 +118,12 @@ export class CityRenderer3D {
   private clock = new THREE.Clock();
   private lastFrameTime = 0;
 
+  // Idle detection for performance
+  private lastCameraPanX = 0;
+  private lastCameraPanZ = 0;
+  private lastCameraZoom = 1;
+  private lastRenderTime = 0;
+
   // Smooth lighting interpolation
   private lightingTarget: LightingTarget | null = null;
 
@@ -118,6 +137,10 @@ export class CityRenderer3D {
   private currentWorldId: string | undefined;
   private hasCentered = false;
   private buildingUpdatePending = false;
+  // DISABLED: parcelBordersUpdatePending (parcel borders now handled by ProceduralBuildings)
+  // private parcelBordersUpdatePending = false;
+  private introAnimationStartTime = 0;
+  private introAnimationComplete = false;
 
   /**
    * Initialize the renderer and attach to a DOM element
@@ -145,8 +168,8 @@ export class CityRenderer3D {
     // Scene
     this.scene = new THREE.Scene();
 
-    // Fog (exponential for medieval atmosphere)
-    this.scene.fog = new THREE.FogExp2(0x4a3e2e, 0.0012);
+    // Fog (exponential for medieval atmosphere, dark to match base ground)
+    this.scene.fog = new THREE.FogExp2(0x1a150e, 0.0008);
 
     // Camera
     const aspect = container.clientWidth / container.clientHeight;
@@ -192,10 +215,6 @@ export class CityRenderer3D {
     this.picking = new ThreePicking();
     this.scene.add(this.picking.getGroundPlane());
 
-    // Model loader (3D assets)
-    this.modelLoader = new ThreeModelLoader();
-    await this.modelLoader.loadManifest();
-
     // Visual effects (smoke, lamps, trade routes)
     this.effects = new ThreeEffects();
     this.scene.add(this.effects.getGroup());
@@ -207,6 +226,26 @@ export class CityRenderer3D {
     // Trade effects (particles, offer markers, prosperity glow)
     this.tradeEffects = new ThreeTradeEffects();
     this.scene.add(this.tradeEffects.getGroup());
+
+    // Army marches (marching armies visualization)
+    this.armyMarches = new ThreeArmyMarches(this.scene);
+
+    // Floating text (Metin2-style damage/reward popups)
+    this.floatingText = new ThreeFloatingText(this.scene);
+
+    // Capture effects (contested parcel visualization)
+    this.captureEffects = new ThreeCaptureEffects();
+    this.scene.add(this.captureEffects.getGroup());
+
+    // Parcel borders (3D fences/walls)
+    this.parcelBorders = new ThreeParcelBorders();
+    this.scene.add(this.parcelBorders.getGroup());
+
+    // Faction territory indicators (ground overlays + banner poles)
+    this.factionIndicators = new ThreeFactionIndicators(this.scene);
+
+    // Agent pawns (3D pawn-shaped markers for each agent)
+    this.agents = new ThreeAgents(this.scene);
 
     // Post-processing (bloom)
     this.postProcessing = new ThreePostProcessing(
@@ -258,15 +297,26 @@ export class CityRenderer3D {
     // Update chunks with new map data
     this.chunks.setMapData(mapWidth, mapHeight, parcels);
 
-    // Center camera on first data load
-    if (mapData && !this.hasCentered) {
-      const centerX = mapData.cityCenter?.x ?? 25;
-      const centerY = mapData.cityCenter?.y ?? 25;
+    // Camera intro: center on parcel centroid (where the action is)
+    // Only center once we have parcels loaded - don't use fallback positioning
+    if (!this.hasCentered && mapData && parcels.length > 0) {
+      // Center on centroid of all parcels
+      let sumX = 0, sumZ = 0;
+      for (const p of parcels) {
+        sumX += p.bounds.x + (p.bounds.width - 1) / 2;
+        sumZ += p.bounds.y + (p.bounds.height - 1) / 2;
+      }
+      const centerX = sumX / parcels.length;
+      const centerZ = sumZ / parcels.length;
+
       this.cameraController.setPan(
         centerX * TILE_SIZE,
-        centerY * TILE_SIZE,
+        centerZ * TILE_SIZE,
       );
+
       this.hasCentered = true;
+      this.introAnimationStartTime = this.clock.getElapsedTime();
+      console.log(`[Three.js] Camera centered on parcels centroid: (${centerX.toFixed(0)}, ${centerZ.toFixed(0)}), ${parcels.length} parcels`);
     }
 
     // Track world ID for neon emissive
@@ -275,7 +325,7 @@ export class CityRenderer3D {
     // Update buildings if changed (async with 3D models)
     if (buildings !== this.currentBuildings && !this.buildingUpdatePending) {
       this.buildingUpdatePending = true;
-      this.updateBuildings(buildings).then(() => {
+      this.updateBuildings(buildings, parcels).then(() => {
         this.buildingUpdatePending = false;
       });
     }
@@ -284,6 +334,24 @@ export class CityRenderer3D {
     if (parcels !== this.currentParcels) {
       this.currentParcels = parcels;
       this.updateParcelGroundFill(parcels);
+
+      // DISABLED: Parcel borders now handled by ProceduralBuildings compound system
+      // Each compound creates its own perimeter (fences/walls/torches) based on theme
+      // if (!this.parcelBordersUpdatePending) {
+      //   this.parcelBordersUpdatePending = true;
+      //   this.parcelBorders.update(parcels).then(() => {
+      //     this.parcelBordersUpdatePending = false;
+      //   });
+      // }
+
+      // Update faction territory indicators (ground overlays + banner poles)
+      this.factionIndicators.updateParcels(parcels as any);
+
+      // Update agent pawns (one pawn per parcel owner)
+      this.agents.updateAgents(parcels as any);
+
+      // Update parcel decorations (props between buildings)
+      this.updateParcelDecorations(parcels);
     }
 
     // Update lighting for time phase
@@ -296,11 +364,11 @@ export class CityRenderer3D {
   /**
    * Async building update — loads 3D models then swaps the building group
    */
-  private async updateBuildings(buildings: RenderableBuilding[]): Promise<void> {
+  private async updateBuildings(buildings: RenderableBuilding[], parcels?: RenderableParcel[]): Promise<void> {
     const newGroup = await buildBuildingGroup3D(
       buildings,
-      this.modelLoader,
       this.currentWorldId,
+      parcels,
     );
 
     if (this.disposed) {
@@ -324,10 +392,43 @@ export class CityRenderer3D {
   }
 
   /**
+   * Update parcel decorations (props between buildings)
+   */
+  private async updateParcelDecorations(parcels: RenderableParcel[]): Promise<void> {
+    if (this.disposed) return;
+
+    // Dispose old decorations
+    for (const [, decorationGroup] of this.parcelDecorations) {
+      this.scene.remove(decorationGroup.group);
+      disposeDecorationGroup(decorationGroup);
+    }
+    this.parcelDecorations.clear();
+
+    // Build new decorations for each parcel
+    for (const parcel of parcels) {
+      try {
+        const decorationGroup = await buildParcelDecorations(
+          parcel,
+          this.currentBuildings,
+        );
+
+        if (decorationGroup.group.children.length > 0) {
+          this.scene.add(decorationGroup.group);
+          this.parcelDecorations.set(parcel.id, decorationGroup);
+        }
+      } catch (error) {
+        console.warn(`[Three.js] Failed to build decorations for parcel ${parcel.id}:`, error);
+      }
+    }
+
+    console.log(`[Three.js] Built decorations for ${this.parcelDecorations.size} parcels`);
+  }
+
+  /**
    * Place base.gltf tiles on all parcel areas to fill empty ground
    */
-  private async updateParcelGroundFill(parcels: RenderableParcel[]): Promise<void> {
-    if (this.disposed || !this.modelLoader) return;
+  private async updateParcelGroundFill(_parcels: RenderableParcel[]): Promise<void> {
+    if (this.disposed) return;
 
     // Remove old ground fill
     if (this.parcelGroundGroup) {
@@ -342,147 +443,155 @@ export class CityRenderer3D {
       this.parcelGroundGroup = null;
     }
 
-    if (parcels.length === 0) return;
+    // GLTF loading removed - ground fill disabled until procedural decorations are implemented
+    return;
+  }
 
-    // Ensure manifest is loaded
-    await this.modelLoader.loadManifest();
+  /**
+   * Add building-themed prop decorations to a parcel
+   * TODO: Restore this method when prop decoration system is implemented
+   */
+  /* private addPropDecorations(
+    parcel: RenderableParcel,
+    occupiedTiles: Set<string>,
+    placements: Record<string, Array<{ x: number; z: number; rotY: number }>>,
+    rng: () => number,
+  ): void {
+    const { x: bx, y: by, width, height } = parcel.bounds;
 
-    // Build a set of occupied tiles (where buildings already exist)
-    const occupiedTiles = new Set<string>();
-    for (const b of this.currentBuildings) {
-      const entry = this.modelLoader.getTypeEntry(b.type);
-      const fw = entry?.footprint?.[0] ?? 1;
-      const fh = entry?.footprint?.[1] ?? 1;
-      for (let dy = 0; dy < fh; dy++) {
-        for (let dx = 0; dx < fw; dx++) {
-          occupiedTiles.add(`${b.coords.x + dx},${b.coords.y + dy}`);
+    // Find buildings in this parcel
+    const parcelBuildings = this.currentBuildings.filter(b => b.parcelId === parcel.id);
+    if (parcelBuildings.length === 0) return;
+
+    // Determine dominant building theme
+    const typeCounts: Record<string, number> = {};
+    for (const b of parcelBuildings) {
+      typeCounts[b.type] = (typeCounts[b.type] ?? 0) + 1;
+    }
+
+    let maxCount = 0;
+    let dominantType = '';
+    for (const [type, count] of Object.entries(typeCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantType = type;
+      }
+    }
+
+    // Collect empty interior tiles (not edges, not occupied)
+    const emptyTiles: Array<{ x: number; y: number }> = [];
+    for (let ly = 2; ly < height - 2; ly++) {
+      for (let lx = 2; lx < width - 2; lx++) {
+        const gx = bx + lx;
+        const gy = by + ly;
+        if (!occupiedTiles.has(`${gx},${gy}`)) {
+          emptyTiles.push({ x: gx, y: gy });
         }
       }
     }
 
-    // Collect decoration placements per environment model type
-    const placements: Record<string, Array<{ x: number; z: number; rotY: number }>> = {
-      tree: [], grass: [], stone: [], torch: [],
+    if (emptyTiles.length === 0) return;
+
+    // Place 1-3 prop clusters based on theme
+    const clusterCount = Math.min(3, 1 + Math.floor(rng() * 3));
+
+    for (let c = 0; c < clusterCount; c++) {
+      if (emptyTiles.length === 0) break;
+
+      const tileIdx = Math.floor(rng() * emptyTiles.length);
+      const tile = emptyTiles.splice(tileIdx, 1)[0];
+
+      const centerX = tile.x * TILE_SIZE;
+      const centerZ = tile.y * TILE_SIZE;
+
+      // Theme-based prop selection
+      const props: string[] = [];
+
+      if (dominantType === 'market') {
+        // Market: stall + barrels/boxes
+        if (rng() > 0.5) props.push('market');
+        props.push('barrel', 'box');
+        if (rng() > 0.5) props.push('sack');
+      } else if (dominantType === 'farm' || dominantType === 'lumberyard') {
+        // Farming: well + sacks/barrels
+        if (rng() > 0.6) props.push('well');
+        props.push('sack');
+        if (rng() > 0.5) props.push('barrel');
+      } else if (dominantType === 'barracks' || dominantType === 'watchtower') {
+        // Military: supply depot with carts + crates
+        props.push('cart', 'barrel', 'box');
+      } else if (dominantType === 'stable') {
+        // Stables: carts + hay
+        props.push('cart');
+        if (rng() > 0.5) props.push('sack');
+      } else {
+        // Residential: scattered barrels/boxes
+        if (rng() > 0.6) props.push('barrel');
+        if (rng() > 0.6) props.push('box');
+      }
+
+      // Place props in small cluster
+      for (const propType of props) {
+        const angle = rng() * Math.PI * 2;
+        const radius = rng() * TILE_SIZE * 0.6;
+        const x = centerX + Math.cos(angle) * radius;
+        const z = centerZ + Math.sin(angle) * radius;
+        const rotY = rng() * Math.PI * 2;
+
+        if (placements[propType]) {
+          placements[propType].push({ x, z, rotY });
+        }
+      }
+    }
+
+    // Add a few scattered small props
+    const scatterCount = Math.min(3, Math.floor(emptyTiles.length * 0.05));
+    for (let i = 0; i < scatterCount; i++) {
+      if (emptyTiles.length === 0) break;
+
+      const tileIdx = Math.floor(rng() * emptyTiles.length);
+      const tile = emptyTiles.splice(tileIdx, 1)[0];
+
+      const propType = ['barrel', 'box', 'sack'][Math.floor(rng() * 3)];
+      const x = tile.x * TILE_SIZE + (rng() - 0.5) * TILE_SIZE * 0.4;
+      const z = tile.y * TILE_SIZE + (rng() - 0.5) * TILE_SIZE * 0.4;
+      const rotY = rng() * Math.PI * 2;
+
+      if (placements[propType]) {
+        placements[propType].push({ x, z, rotY });
+      }
+    }
+  } */
+
+  /**
+   * Load decoration model (environment or building prop)
+   * TODO: Restore this method when prop decoration system is implemented
+   */
+  /* private async loadDecorationModel(type: string): Promise<THREE.Group | null> {
+    // Environment models (tree, grass, stone, torch)
+    if (['tree', 'grass', 'stone', 'torch'].includes(type)) {
+      return this.modelLoader.loadEnvironment(type, 0);
+    }
+
+    // Building props (load by node name)
+    const nodeMap: Record<string, string> = {
+      barrel: 'Barrel',
+      box: 'Box',
+      sack: 'Sack',
+      cart: 'Cart',
+      well: 'Well',
+      market: 'Market_1', // Use Market_1 as default market stall
     };
 
-    // Import terrain decoration config
-    const { TERRAIN_DECORATION_CONFIG } = await import('@agentropolis/shared');
+    const nodeName = nodeMap[type];
+    if (!nodeName) return null;
 
-    for (const parcel of parcels) {
-      const terrain = (parcel.terrain ?? 'plains') as import('@agentropolis/shared').TerrainType;
-      const rule = TERRAIN_DECORATION_CONFIG[terrain];
-      if (!rule) continue;
+    // Use the new loadNodeByName method
+    const scale = type === 'market' ? 0.6 : 0.4;
+    return this.modelLoader.loadNodeByName(nodeName, scale);
+  } */
 
-      const { x: bx, y: by, width, height } = parcel.bounds;
 
-      // Seeded RNG from parcel ID for deterministic decoration
-      let seed = 0;
-      for (let i = 0; i < parcel.id.length; i++) {
-        seed = ((seed << 5) - seed + parcel.id.charCodeAt(i)) | 0;
-      }
-      const rng = () => {
-        seed = (seed * 1664525 + 1013904223) | 0;
-        return (seed >>> 0) / 4294967296;
-      };
-
-      // Edge tiles: torches at parcel borders for visual boundary
-      const isEdge = (lx: number, ly: number) =>
-        (lx === 0 || lx === width - 1 || ly === 0 || ly === height - 1);
-
-      for (let ly = 0; ly < height; ly++) {
-        for (let lx = 0; lx < width; lx++) {
-          const gx = bx + lx;
-          const gy = by + ly;
-
-          // Skip occupied tiles (buildings)
-          if (occupiedTiles.has(`${gx},${gy}`)) continue;
-
-          const worldX = gx * TILE_SIZE;
-          const worldZ = gy * TILE_SIZE;
-
-          // Edge tiles: sparse torches for parcel boundary markers
-          if (isEdge(lx, ly)) {
-            if (rule.borderTorchChance > 0 && rng() < rule.borderTorchChance) {
-              placements.torch.push({ x: worldX, z: worldZ, rotY: rng() * Math.PI * 2 });
-            }
-            continue;
-          }
-
-          // Regular empty tiles: terrain-weighted decoration
-          if (rng() > rule.density) continue;
-
-          // Weighted random selection
-          const entries = Object.entries(rule.weights) as Array<[string, number]>;
-          const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
-          let roll = rng() * totalWeight;
-          let selectedModel = entries[0]?.[0] ?? 'grass';
-          for (const [key, w] of entries) {
-            roll -= w;
-            if (roll <= 0) { selectedModel = key; break; }
-          }
-
-          if (placements[selectedModel]) {
-            placements[selectedModel].push({
-              x: worldX + (rng() - 0.5) * TILE_SIZE * 0.4,
-              z: worldZ + (rng() - 0.5) * TILE_SIZE * 0.4,
-              rotY: rng() * Math.PI * 2,
-            });
-          }
-        }
-      }
-    }
-
-    // Create instanced meshes for each environment model type
-    const group = new THREE.Group();
-    group.name = 'parcel_ground_fill';
-
-    for (const [envType, positions] of Object.entries(placements)) {
-      if (positions.length === 0) continue;
-
-      // Load one template model for this env type
-      const template = await this.modelLoader.loadEnvironment(envType, 0);
-      if (!template || this.disposed) continue;
-
-      // Extract meshes from template
-      const meshes: Array<{ geometry: THREE.BufferGeometry; material: THREE.Material | THREE.Material[] }> = [];
-      template.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          meshes.push({ geometry: child.geometry, material: child.material });
-        }
-      });
-
-      if (meshes.length === 0) continue;
-
-      const templateScale = template.scale.x;
-      const dummy = new THREE.Object3D();
-
-      for (const { geometry, material } of meshes) {
-        const instancedMesh = new THREE.InstancedMesh(geometry, material, positions.length);
-        instancedMesh.castShadow = envType === 'tree';
-        instancedMesh.receiveShadow = true;
-
-        for (let i = 0; i < positions.length; i++) {
-          const p = positions[i];
-          dummy.position.set(p.x, 0, p.z);
-          dummy.rotation.set(0, p.rotY, 0);
-          // Slight scale variation for natural look
-          const scaleVar = templateScale * (0.8 + (((p.x * 73 + p.z * 137) >>> 0) % 100) / 250);
-          dummy.scale.setScalar(scaleVar);
-          dummy.updateMatrix();
-          instancedMesh.setMatrixAt(i, dummy.matrix);
-        }
-
-        instancedMesh.instanceMatrix.needsUpdate = true;
-        group.add(instancedMesh);
-      }
-    }
-
-    if (group.children.length > 0) {
-      this.parcelGroundGroup = group;
-      this.scene.add(group);
-      console.log(`[Three.js] Ground fill: placed decorations for ${parcels.length} parcels`);
-    }
-  }
 
   /**
    * Set time phase — sets targets for smooth interpolation
@@ -722,12 +831,50 @@ export class CityRenderer3D {
     const dt = elapsed - this.lastFrameTime;
     this.lastFrameTime = elapsed;
 
+    // Idle detection: skip rendering if nothing has changed and less than 100ms has passed
+    const camState = this.cameraController.getState();
+    const cameraChanged =
+      Math.abs(camState.panX - this.lastCameraPanX) > 0.001 ||
+      Math.abs(camState.panZ - this.lastCameraPanZ) > 0.001 ||
+      Math.abs(camState.zoom - this.lastCameraZoom) > 0.001;
+
+    const isIdle =
+      !cameraChanged &&
+      !this.flyToTarget &&
+      !this.lightingTarget &&
+      (elapsed - this.lastRenderTime) < 0.1;
+
+    if (isIdle) {
+      this.rafId = requestAnimationFrame(this.renderLoop);
+      return;
+    }
+
+    // Update last camera state
+    this.lastCameraPanX = camState.panX;
+    this.lastCameraPanZ = camState.panZ;
+    this.lastCameraZoom = camState.zoom;
+    this.lastRenderTime = elapsed;
+
+    // Camera intro animation: zoom from default (1.6) to comfortable (2.8) after 1 second
+    if (!this.introAnimationComplete && this.hasCentered) {
+      const introElapsed = elapsed - this.introAnimationStartTime;
+      if (introElapsed >= 1.0) {
+        // Start zoom animation
+        this.cameraController.setTargetZoom(CAMERA_ZOOM_COMFORTABLE);
+        // Check if zoom is complete
+        const currentZoom = this.cameraController.getState().zoom;
+        if (Math.abs(currentZoom - CAMERA_ZOOM_COMFORTABLE) < 0.01) {
+          this.introAnimationComplete = true;
+          console.log('[Three.js] Camera intro animation complete');
+        }
+      }
+    }
+
     // Apply camera inertia + smooth zoom
     this.cameraController.applyInertia();
 
     // Smooth fly-to
     if (this.flyToTarget) {
-      const camState = this.cameraController.getState();
       const dx = this.flyToTarget.x - camState.panX;
       const dz = this.flyToTarget.z - camState.panZ;
       const dist = Math.sqrt(dx * dx + dz * dz);
@@ -744,8 +891,10 @@ export class CityRenderer3D {
     }
 
     // Update chunk streaming based on camera position
-    const camState = this.cameraController.getState();
     this.chunks.update(camState.panX, camState.panZ);
+
+    // Update faction indicators LOD based on camera zoom
+    this.factionIndicators.updateCamera(camState.zoom);
 
     // Smooth lighting transitions
     this.lerpLighting(dt);
@@ -762,6 +911,15 @@ export class CityRenderer3D {
 
     // Update trade effects (particles, diamond bob)
     this.tradeEffects?.update(elapsed);
+
+    // Update army marches (smooth interpolation)
+    this.armyMarches?.animate(dt);
+
+    // Update floating text animations (float-up + fade)
+    this.floatingText?.animate(dt);
+
+    // Update capture effects (pulse + progress)
+    this.captureEffects?.animate(elapsed);
 
     // Render with post-processing (bloom)
     this.postProcessing.render();
@@ -815,10 +973,38 @@ export class CityRenderer3D {
   }
 
   /**
+   * Update marching armies from socket state
+   */
+  updateMarchingArmies(armies: MarchingArmyData[]): void {
+    this.armyMarches?.updateMarches(armies);
+  }
+
+  /**
+   * Show floating text at world position (Metin2-style popup)
+   */
+  showFloatingText(options: FloatingTextOptions): void {
+    this.floatingText?.spawn(options);
+  }
+
+  /**
+   * Update contested parcels from socket state
+   */
+  updateContestedParcels(parcels: ContestedParcel[]): void {
+    this.captureEffects?.updateContested(parcels);
+  }
+
+  /**
    * Get current camera zoom percentage
    */
   getZoomPercent(): number {
     return Math.round(this.cameraController.getState().zoom * 100);
+  }
+
+  /**
+   * Set camera zoom level smoothly
+   */
+  setZoom(targetZoom: number): void {
+    this.cameraController.setTargetZoom(targetZoom);
   }
 
   /**
@@ -844,16 +1030,27 @@ export class CityRenderer3D {
 
     this.chunks?.disposeAll();
     this.picking?.dispose();
-    this.modelLoader?.dispose();
     this.postProcessing?.dispose();
     this.effects?.dispose();
+    this.parcelBorders?.dispose();
+    this.factionIndicators?.dispose();
+    this.agents?.dispose();
     this.battleEffects?.dispose();
     this.tradeEffects?.dispose();
+    this.armyMarches?.dispose();
+    this.floatingText?.dispose();
+    this.captureEffects?.dispose();
     this.sky?.dispose();
 
     if (this.buildingGroup) {
       disposeBuildingGroup3D(this.buildingGroup);
     }
+
+    // Dispose parcel decorations
+    for (const decorationGroup of this.parcelDecorations.values()) {
+      disposeDecorationGroup(decorationGroup);
+    }
+    this.parcelDecorations.clear();
     if (this.parcelGroundGroup) {
       this.parcelGroundGroup.traverse((child) => {
         if (child instanceof THREE.InstancedMesh || child instanceof THREE.Mesh) {

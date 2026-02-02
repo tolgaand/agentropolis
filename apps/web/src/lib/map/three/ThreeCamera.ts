@@ -186,4 +186,15 @@ export class ThreeCamera {
     this.state.vx = 0;
     this.state.vz = 0;
   }
+
+  /**
+   * Set target zoom level directly (for intro animations)
+   */
+  setTargetZoom(zoom: number): void {
+    this.state.targetZoom = THREE.MathUtils.clamp(
+      zoom,
+      CAMERA_ZOOM_MIN,
+      CAMERA_ZOOM_MAX,
+    );
+  }
 }

@@ -89,6 +89,7 @@ export interface Building {
   modelId?: string; // 3D model catalog ID
   createdAt: string;
   updatedAt: string;
+  isSystemOwned?: boolean; // True for seed/founder buildings
 }
 
 // Renderable building with pre-computed position data

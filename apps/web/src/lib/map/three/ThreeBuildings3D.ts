@@ -1,15 +1,15 @@
 /**
- * ThreeBuildings3D - Medieval 3D building rendering with GLTF models
+ * ThreeBuildings3D - Parcel-filling compound rendering
  *
- * Loads building models from combined medieval GLTF scene by building type.
- * Buildings without GLTF models get procedural 3D box placeholders.
+ * Groups buildings by parcel and renders ONE cohesive compound per parcel
+ * that fills the entire 20x20 area. Theme is detected from building types.
  * Preserves userData for picking (buildingId, gridX, gridY).
  */
 
 import * as THREE from 'three';
-import { TILE_SIZE, WORLD_COLORS } from './ThreeConfig';
-import { ThreeModelLoader } from './ThreeModelLoader';
-import type { RenderableBuilding } from '../types';
+import { TILE_SIZE, BLOCK_SIZE, WORLD_COLORS } from './ThreeConfig';
+import { ProceduralBuildings, detectTheme, type CompoundTheme } from './ProceduralBuildings';
+import type { RenderableBuilding, RenderableParcel } from '../types';
 
 export interface BuildingGroup3D {
   group: THREE.Group;
@@ -17,98 +17,11 @@ export interface BuildingGroup3D {
   shadowMeshes: THREE.Mesh[];
 }
 
-// Medieval building procedural sizes (used when GLTF not available)
-const PROCEDURAL_SIZES: Record<string, { w: number; h: number; d: number }> = {
-  farm:       { w: 1.2, h: 1.2, d: 1.2 },
-  lumberyard: { w: 1.3, h: 1.3, d: 1.3 },
-  quarry:     { w: 1.2, h: 1.0, d: 1.2 },
-  iron_mine:  { w: 1.3, h: 1.1, d: 1.3 },
-  market:     { w: 1.6, h: 1.4, d: 1.2 },
-  barracks:   { w: 1.8, h: 2.0, d: 1.8 },
-  stable:     { w: 1.6, h: 1.5, d: 1.2 },
-  watchtower: { w: 0.8, h: 2.5, d: 0.8 },
-  wall:       { w: 1.8, h: 1.5, d: 0.6 },
-  castle:     { w: 2.5, h: 3.5, d: 2.5 },
-  academy:    { w: 2.0, h: 2.8, d: 2.0 },
-};
+// Shared procedural builder instance
+const proceduralBuilder = new ProceduralBuildings();
 
-const DEFAULT_SIZE = { w: 1.2, h: 1.5, d: 1.2 };
-
-/**
- * Create a procedural 3D box as placeholder for buildings without GLTF models
- */
-function createProceduralBuilding(
-  building: RenderableBuilding,
-  worldId?: string,
-): THREE.Mesh {
-  const size = PROCEDURAL_SIZES[building.type] ?? DEFAULT_SIZE;
-  const width = TILE_SIZE * size.w;
-  const height = TILE_SIZE * size.h;
-  const depth = TILE_SIZE * size.d;
-
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-
-  const baseColors = [0x8b7355, 0x9b8565, 0x7b6345, 0xa09080, 0x8b8060];
-  const baseColor = baseColors[Math.floor(Math.random() * baseColors.length)];
-  const themeColor = WORLD_COLORS[worldId ?? ''] ?? 0x7b68ee;
-  const material = new THREE.MeshStandardMaterial({
-    color: baseColor,
-    emissive: new THREE.Color(themeColor),
-    emissiveIntensity: 0.08,
-    roughness: 0.85,
-    metalness: 0.05,
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-
-  const worldX = building.coords.x * TILE_SIZE;
-  const worldZ = building.coords.y * TILE_SIZE;
-  mesh.position.set(worldX, height / 2, worldZ);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-
-  return mesh;
-}
-
-/**
- * Create shadow beneath a building
- */
-function createBuildingShadow(building: RenderableBuilding, radius?: number): THREE.Mesh {
-  const r = radius ?? TILE_SIZE * 0.4;
-  const geometry = new THREE.CircleGeometry(r, 16);
-  geometry.rotateX(-Math.PI / 2);
-
-  const material = new THREE.MeshBasicMaterial({
-    color: 0x000000,
-    transparent: true,
-    opacity: 0.25,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  const worldX = building.coords.x * TILE_SIZE;
-  const worldZ = building.coords.y * TILE_SIZE;
-  mesh.position.set(worldX, 0.01, worldZ);
-  mesh.renderOrder = building.drawOrder - 1;
-
-  return mesh;
-}
-
-/**
- * Apply subtle kingdom accent to 3D models WITHOUT drowning original colors.
- */
-function applyNeonEmissive(model: THREE.Group, worldId?: string): void {
-  const color = new THREE.Color(WORLD_COLORS[worldId ?? ''] ?? 0x7b68ee);
-
-  model.traverse((child) => {
-    if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-      child.material = child.material.clone();
-      child.material.emissive = color;
-      child.material.emissiveIntensity = 0.08;
-    }
-  });
-}
+// Border padding in tiles (buildings start at tile 2)
+const BORDER_PADDING = 2;
 
 /**
  * Attach building userData to all children for raycaster picking
@@ -125,94 +38,116 @@ function attachBuildingData(obj: THREE.Object3D, building: RenderableBuilding): 
 }
 
 /**
- * Build the building group with 3D models (async — loads GLTF models)
- * Uses building.type for model lookup instead of spriteId.
+ * Simple hash for deterministic seed from parcel ID string
+ */
+function hashString(str: string): number {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+/**
+ * Build the building group using compound system.
+ * Groups buildings by parcel, detects theme, creates one compound per parcel.
  */
 export async function buildBuildingGroup3D(
   buildings: RenderableBuilding[],
-  modelLoader: ThreeModelLoader,
   worldId?: string,
+  parcels?: RenderableParcel[],
 ): Promise<BuildingGroup3D> {
   const group = new THREE.Group();
   const buildingMeshes = new Map<string, THREE.Object3D>();
   const shadowMeshes: THREE.Mesh[] = [];
 
-  // Separate buildings with 3D models from those needing procedural fallback
-  const modelPromises: Array<{
-    building: RenderableBuilding;
-    promise: Promise<THREE.Group | null>;
-  }> = [];
+  const factionColor = WORLD_COLORS[worldId ?? ''] ?? 0x7b68ee;
 
+  // Group buildings by parcelId
+  const parcelGroups = new Map<string, RenderableBuilding[]>();
   for (const building of buildings) {
-    if (modelLoader.hasType(building.type)) {
-      // Use coords hash as variant seed for deterministic model selection
-      const variantSeed = building.coords.x * 1000 + building.coords.y;
-      modelPromises.push({
-        building,
-        promise: modelLoader.loadByType(building.type, variantSeed),
-      });
-    } else {
-      // Procedural 3D box
-      const mesh = createProceduralBuilding(building, worldId);
-      attachBuildingData(mesh, building);
-      group.add(mesh);
-      buildingMeshes.set(building.id, mesh);
-
-      const shadow = createBuildingShadow(building);
-      group.add(shadow);
-      shadowMeshes.push(shadow);
-    }
+    const pid = building.parcelId;
+    if (!parcelGroups.has(pid)) parcelGroups.set(pid, []);
+    parcelGroups.get(pid)!.push(building);
   }
 
-  // Resolve 3D model loading
-  const results = await Promise.allSettled(
-    modelPromises.map(async ({ building, promise }) => {
-      const model = await promise;
-      return { building, model };
-    }),
-  );
+  // Build parcel lookup for theme + bounds
+  const parcelMap = new Map<string, RenderableParcel>();
+  if (parcels) {
+    for (const p of parcels) parcelMap.set(p.id, p);
+  }
 
-  for (const result of results) {
-    if (result.status !== 'fulfilled') continue;
-    const { building, model } = result.value;
+  for (const [parcelId, parcelBuildings] of parcelGroups) {
+    // Detect theme from building types
+    const buildingTypes = parcelBuildings.map((b) => b.type ?? 'farm');
+    const parcelData = parcelMap.get(parcelId);
 
-    if (model) {
-      const entry = modelLoader.getTypeEntry(building.type);
-      const yOffset = entry?.yOffset ?? 0;
-      const fw = entry?.footprint?.[0] ?? 1;
-      const fh = entry?.footprint?.[1] ?? 1;
-      const worldX = building.coords.x * TILE_SIZE + ((fw - 1) * TILE_SIZE) / 2;
-      const worldZ = building.coords.y * TILE_SIZE + ((fh - 1) * TILE_SIZE) / 2;
-
-      model.position.set(worldX, yOffset, worldZ);
-
-      applyNeonEmissive(model, worldId);
-
-      model.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-
-      attachBuildingData(model, building);
-      group.add(model);
-      buildingMeshes.set(building.id, model);
-
-      const shadowRadius = (entry?.footprint?.[0] ?? 1) * TILE_SIZE * 0.3;
-      const shadow = createBuildingShadow(building, shadowRadius);
-      group.add(shadow);
-      shadowMeshes.push(shadow);
+    // Use parcel's theme if available, otherwise detect from buildings
+    let theme: CompoundTheme;
+    if (parcelData?.theme) {
+      // Map parcel theme names to compound themes
+      const themeMap: Record<string, CompoundTheme> = {
+        farming: 'farming',
+        military: 'military',
+        trade: 'trade',
+        mining: 'mining',
+        noble: 'noble',
+        residential: 'residential',
+        mixed: 'mixed',
+      };
+      theme = themeMap[parcelData.theme] ?? detectTheme(buildingTypes);
     } else {
-      // GLTF load failed — procedural fallback
-      const mesh = createProceduralBuilding(building, worldId);
-      attachBuildingData(mesh, building);
-      group.add(mesh);
-      buildingMeshes.set(building.id, mesh);
+      theme = detectTheme(buildingTypes);
+    }
 
-      const shadow = createBuildingShadow(building);
-      group.add(shadow);
-      shadowMeshes.push(shadow);
+    // Compute parcel center
+    let centerX: number, centerZ: number;
+    if (parcelData) {
+      // Use parcel bounds — center of tile indices [x, x+width-1]
+      centerX = (parcelData.bounds.x + (parcelData.bounds.width - 1) / 2) * TILE_SIZE;
+      centerZ = (parcelData.bounds.y + (parcelData.bounds.height - 1) / 2) * TILE_SIZE;
+    } else {
+      // Estimate from building positions
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const b of parcelBuildings) {
+        minX = Math.min(minX, b.coords.x);
+        minY = Math.min(minY, b.coords.y);
+        maxX = Math.max(maxX, b.coords.x);
+        maxY = Math.max(maxY, b.coords.y);
+      }
+      // Approximate parcel origin from min coords (buildings start at BORDER_PADDING)
+      const parcelOriginX = minX - BORDER_PADDING;
+      const parcelOriginY = minY - BORDER_PADDING;
+      centerX = (parcelOriginX + BLOCK_SIZE / 2) * TILE_SIZE;
+      centerZ = (parcelOriginY + BLOCK_SIZE / 2) * TILE_SIZE;
+    }
+
+    // Average level
+    const avgLevel = Math.round(
+      parcelBuildings.reduce((sum, b) => sum + (b.level ?? 1), 0) / parcelBuildings.length
+    );
+
+    // Create compound
+    const result = proceduralBuilder.createCompound({
+      theme,
+      factionColor,
+      level: Math.max(1, Math.min(5, avgLevel)),
+      centerX,
+      centerZ,
+      seed: hashString(parcelId),
+    });
+
+    const compoundGroup = result.group;
+
+    // Attach building data from first building (for raycaster picking on parcel)
+    const primaryBuilding = parcelBuildings[0];
+    attachBuildingData(compoundGroup, primaryBuilding);
+
+    group.add(compoundGroup);
+
+    // Register all buildings in this parcel for hover/selection
+    for (const building of parcelBuildings) {
+      buildingMeshes.set(building.id, compoundGroup);
     }
   }
 
@@ -241,12 +176,17 @@ export function setBuildingHover3D(
  * Dispose building group resources
  */
 export function disposeBuildingGroup3D(data: BuildingGroup3D): void {
+  // Track disposed groups to avoid double-dispose (multiple buildings share compound)
+  const disposed = new Set<THREE.Object3D>();
   for (const obj of data.buildingMeshes.values()) {
+    if (disposed.has(obj)) continue;
+    disposed.add(obj);
     obj.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        for (const mat of mats) mat.dispose();
+        // Don't dispose materials — they are cached by ProceduralBuildings
+        // and will be reused across rebuilds. ProceduralBuildings.dispose()
+        // handles material cleanup on renderer teardown.
       }
     });
   }

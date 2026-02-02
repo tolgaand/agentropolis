@@ -109,7 +109,7 @@ export class ThreePicking {
 
     this.raycaster.setFromCamera(this.mouse, camera);
 
-    const intersects = this.raycaster.intersectObjects(buildingGroup.children, false);
+    const intersects = this.raycaster.intersectObjects(buildingGroup.children, true);
     if (intersects.length === 0) return null;
 
     const userData = intersects[0].object.userData;

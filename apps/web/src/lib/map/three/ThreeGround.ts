@@ -18,6 +18,10 @@ import {
   BLOCK_OFFSET_Y,
   MAX_INSTANCES_PER_MESH,
   PARCEL_BORDER_BRIGHTNESS,
+  FACTION_COLORS,
+  FACTION_TINT_STRENGTH,
+  GAP_GROUND_COLOR,
+  PATH_STONE_COLOR,
 } from './ThreeConfig';
 import type { RenderableParcel } from '../types';
 
@@ -92,6 +96,33 @@ function adjustColor(rgb: [number, number, number], amount: number): [number, nu
   ];
 }
 
+/**
+ * Check if a tile is in the gap between parcels
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function isGapTile(worldTileX: number, worldTileZ: number): boolean {
+  // Calculate local position within block stride
+  const localX = ((worldTileX - BLOCK_OFFSET_X) % BLOCK_STRIDE + BLOCK_STRIDE) % BLOCK_STRIDE;
+  const localZ = ((worldTileZ - BLOCK_OFFSET_Y) % BLOCK_STRIDE + BLOCK_STRIDE) % BLOCK_STRIDE;
+  // Gap tiles are those beyond BLOCK_SIZE within each stride
+  return localX >= BLOCK_SIZE || localZ >= BLOCK_SIZE;
+}
+
+/**
+ * Check if a tile is in the center path (2 tiles wide) of a gap
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function isPathCenterTile(worldTileX: number, worldTileZ: number): boolean {
+  const localX = ((worldTileX - BLOCK_OFFSET_X) % BLOCK_STRIDE + BLOCK_STRIDE) % BLOCK_STRIDE;
+  const localZ = ((worldTileZ - BLOCK_OFFSET_Y) % BLOCK_STRIDE + BLOCK_STRIDE) % BLOCK_STRIDE;
+  const gapStart = BLOCK_SIZE;
+  const gapEnd = BLOCK_STRIDE;
+  const gapMid = gapStart + (gapEnd - gapStart) / 2;
+  // Center 2 tiles of the gap
+  return (localX >= gapMid - 1 && localX < gapMid + 1) ||
+         (localZ >= gapMid - 1 && localZ < gapMid + 1);
+}
+
 export interface GroundChunkData {
   mesh: THREE.InstancedMesh;
   instanceCount: number;
@@ -119,10 +150,13 @@ export function buildGroundChunk(
   const dummy = new THREE.Object3D();
   const tmpColor = new THREE.Color();
 
-  // Build a quick parcel lookup (block key → terrain type)
-  const parcelMap = new Map<string, string>();
+  // Build a quick parcel lookup (block key → parcel data)
+  const parcelMap = new Map<string, { terrain: string; worldId?: string }>();
   for (const p of parcels) {
-    parcelMap.set(`${p.blockX}_${p.blockY}`, p.terrain ?? 'plains');
+    parcelMap.set(`${p.blockX}_${p.blockY}`, {
+      terrain: p.terrain ?? 'plains',
+      worldId: p.worldId,
+    });
   }
 
   let idx = 0;
@@ -137,9 +171,13 @@ export function buildGroundChunk(
       const blockX = Math.floor((gx - BLOCK_OFFSET_X) / BLOCK_STRIDE);
       const blockY = Math.floor((gy - BLOCK_OFFSET_Y) / BLOCK_STRIDE);
       const blockKey = `${blockX}_${blockY}`;
-      const parcelTerrain = parcelMap.get(blockKey);
-      const isParcel = parcelTerrain !== undefined &&
+      const parcelData = parcelMap.get(blockKey);
+      const isParcel = parcelData !== undefined &&
         tileLocalX < BLOCK_SIZE && tileLocalY < BLOCK_SIZE;
+
+      // Detect if tile is in gap between parcels
+      const isInGap = isGapTile(gx, gy);
+      const isPathCenter = isInGap && isPathCenterTile(gx, gy);
 
       // Detect if tile is on parcel edge (outermost ring)
       const isParcelEdge = isParcel && (
@@ -152,13 +190,38 @@ export function buildGroundChunk(
       dummy.updateMatrix();
       mesh.setMatrixAt(idx, dummy.matrix);
 
-      // Color: terrain-based for parcels, base earth for everything else
+      // Color logic: gaps have dirt paths, parcels have terrain colors
       const isLight = (gx + gy) % 2 === 0;
-      const baseColors = (isParcel && parcelTerrain)
-        ? (TERRAIN_GROUND_COLORS[parcelTerrain] ?? GROUND_COLORS.parcel)
-        : GROUND_COLORS.base;
-      const topRGB = hexToRGB(baseColors.top);
-      let adjusted = isLight ? adjustColor(topRGB, 0.03) : adjustColor(topRGB, -0.03);
+      let topRGB: [number, number, number];
+
+      if (isInGap) {
+        // Gap tiles: darker dirt path, with lighter stone center
+        const gapColor = isPathCenter ? PATH_STONE_COLOR : GAP_GROUND_COLOR;
+        topRGB = hexToRGB(gapColor);
+      } else if (isParcel && parcelData) {
+        // Parcel tiles: terrain-based color
+        const baseColors = TERRAIN_GROUND_COLORS[parcelData.terrain] ?? GROUND_COLORS.parcel;
+        topRGB = hexToRGB(baseColors.top);
+      } else {
+        // Base ground (outside all parcels)
+        topRGB = hexToRGB(GROUND_COLORS.base.top);
+      }
+
+      let adjusted = isLight ? adjustColor(topRGB, 0.10) : adjustColor(topRGB, -0.10);
+
+      // Blend faction color if parcel has a worldId
+      if (isParcel && parcelData?.worldId) {
+        const factionColor = FACTION_COLORS[parcelData.worldId];
+        if (factionColor !== undefined) {
+          const factionRGB = hexToRGB(factionColor);
+          // Lerp: blend terrain color with faction color
+          adjusted = [
+            adjusted[0] * (1 - FACTION_TINT_STRENGTH) + factionRGB[0] * FACTION_TINT_STRENGTH,
+            adjusted[1] * (1 - FACTION_TINT_STRENGTH) + factionRGB[1] * FACTION_TINT_STRENGTH,
+            adjusted[2] * (1 - FACTION_TINT_STRENGTH) + factionRGB[2] * FACTION_TINT_STRENGTH,
+          ];
+        }
+      }
 
       // Brighten edge tiles to create visible parcel borders
       if (isParcelEdge) {
