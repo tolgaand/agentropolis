@@ -76,7 +76,7 @@ export function WorldDetail() {
     return (
       <div style={styles.container}>
         <div style={styles.error}>{t('worldDetail.worldNotFound')}</div>
-        <Link to="/multiverse" style={styles.backLink}>← {t('worldDetail.backToMultiverse')}</Link>
+        <Link to="/" style={styles.backLink}>← Back to Start</Link>
       </div>
     );
   }
@@ -125,7 +125,7 @@ export function WorldDetail() {
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.header}>
-        <Link to="/multiverse" style={styles.backLink}>← {t('worldMap.multiverse')}</Link>
+        <Link to="/" style={styles.backLink}>← Back</Link>
         <div style={styles.connectionStatus}>
           <span style={{
             width: 8,
@@ -294,7 +294,7 @@ export function WorldDetail() {
       {/* Page Transition Overlay */}
       <TransitionOverlay
         isActive={transitioning}
-        onComplete={() => navigate(`/world/${worldId}/map`)}
+        onComplete={() => navigate('/game')}
         glitchText={world?.name?.toUpperCase() || worldId?.replace('_', ' ').toUpperCase() || 'ENTERING'}
       />
     </div>

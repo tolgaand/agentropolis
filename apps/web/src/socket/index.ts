@@ -48,8 +48,10 @@ export {
   useActiveBattles,
   useRecentBattles,
   useActiveSieges,
+  useMarchingArmies,
+  useContestedParcels,
 } from './socket.context';
-export type { ConnectionStatus, WorldState, PriceData } from './socket.context';
+export type { ConnectionStatus, WorldState, PriceData, MarchingArmyVisual, ContestedParcel } from './socket.context';
 
 // Room management
 export { useRoom, useRoomSubscription } from './useRoom';

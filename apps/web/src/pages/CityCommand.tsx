@@ -1,27 +1,26 @@
 /**
  * CityCommand - Full-screen 3D map with HUD overlays
  *
- * Replaces the WorldMap + WorldDetail split with a single unified experience.
- * Shows the 3D city viewport with TopBar, BottomBar, EventFeed, and IntelPanel as HUD layers.
+ * V2: Single unified world with factions. All parcels from all factions
+ * are displayed on one map via the game:map socket room.
  */
 
-import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import type { WorldId, TimeState } from '@agentropolis/shared';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import type { TimeState, ProductionTick, TradeCompleted, TradeOfferCreated, ResourceSoldEvent, BattleEvent, BattleResolvedEvent } from '@agentropolis/shared';
 import { CityMapSwitch as CityMap } from '../components/CityMapSwitch';
-import { WorldEntryScreen } from '../components/WorldEntryScreen';
+import { LoadingScreen } from './LoadingScreen';
 import { TopBar } from '../components/hud/TopBar';
 import { BottomBar } from '../components/hud/BottomBar';
 import { EventFeed } from '../components/hud/EventFeed';
 import { IntelPanel } from '../components/hud/IntelPanel';
 import { FloatingPanel } from '../components/hud/FloatingPanel';
-import { useSocketContext, useRoom, ROOMS } from '../socket';
+import { Minimap } from '../components/hud/Minimap';
+import { useSocketContext, useRoom, ROOMS, useMarchingArmies, useContestedParcels, useEvent } from '../socket';
 import { useNotificationQueue } from '../hooks/useNotificationQueue';
 import { useSelectedBuilding } from '../hooks/useSelectedBuilding';
 import { useBuildingAgentMap } from '../hooks/useBuildingAgentMap';
 import { gridToScreen, getDrawOrder } from '../lib/map/coords';
-import type { ClickState } from '../lib/map/three/CityRenderer3D';
+import type { ClickState, CityRenderer3D } from '../lib/map/three/CityRenderer3D';
 import type { RenderableBuilding, RenderableParcel } from '../lib/map/types';
 
 const DEFAULT_TIME_STATE: TimeState = {
@@ -32,30 +31,17 @@ const DEFAULT_TIME_STATE: TimeState = {
   isNewPhase: false,
 };
 
-const WORLD_THEMES: Record<string, { primary: string; glow: string }> = {
-  claude_nation: { primary: '#8b5cf6', glow: 'rgba(139,92,246,0.5)' },
-  openai_empire: { primary: '#10b981', glow: 'rgba(16,185,129,0.5)' },
-  gemini_republic: { primary: '#06b6d4', glow: 'rgba(6,182,212,0.5)' },
-  grok_syndicate: { primary: '#f59e0b', glow: 'rgba(245,158,11,0.5)' },
-  open_frontier: { primary: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
-};
-
-const WORLD_NAMES: Record<string, string> = {
-  claude_nation: 'Claude Nation',
-  openai_empire: 'OpenAI Empire',
-  gemini_republic: 'Gemini Republic',
-  grok_syndicate: 'Grok Syndicate',
-  open_frontier: 'Open Frontier',
-};
-
 export function CityCommand() {
-  const { t } = useTranslation();
-  const { worldId: routeWorldId } = useParams<{ worldId: string }>();
-  const navigate = useNavigate();
-
-  const [worldId, setWorldId] = useState<WorldId>((routeWorldId || 'claude_nation') as WorldId);
-  const [entryComplete, setEntryComplete] = useState(false);
+  // Loading state - show LoadingScreen first
+  const [loaded, setLoaded] = useState(false);
   const [floatingPanel, setFloatingPanel] = useState<'battles' | 'trades' | 'sieges' | null>(null);
+  const rendererRef = useRef<CityRenderer3D | null>(null);
+  const [viewportBounds, setViewportBounds] = useState({
+    centerX: 0,
+    centerZ: 0,
+    width: 50,
+    height: 50,
+  });
 
   const {
     connectionStatus,
@@ -64,8 +50,14 @@ export function CityCommand() {
     activeBattles,
   } = useSocketContext();
 
-  // Subscribe to world map room
-  useRoom(ROOMS.worldMap(worldId));
+  // Get marching armies
+  const marchingArmies = useMarchingArmies();
+
+  // Get contested parcels
+  const contestedParcels = useContestedParcels();
+
+  // V2: Subscribe to unified game map room (all factions, one world)
+  useRoom(ROOMS.GAME_MAP);
 
   // Hide scanlines overlay while in-game
   useEffect(() => {
@@ -73,29 +65,14 @@ export function CityCommand() {
     return () => document.body.classList.remove('in-game');
   }, []);
 
-  const theme = WORLD_THEMES[worldId] || WORLD_THEMES.open_frontier;
-  const worldName = WORLD_NAMES[worldId] || 'Unknown World';
-
   // Notification queue for EventFeed
   const { notifications } = useNotificationQueue();
 
   // Selected building for IntelPanel
   const { selected, selectBuilding, clearSelection } = useSelectedBuilding();
 
-  // Data readiness
-  const dataReady = connectionStatus === 'synced' && mapData !== null;
-
-  // Handle world change from TopBar selector
-  const handleWorldChange = useCallback((newWorldId: WorldId) => {
-    setWorldId(newWorldId);
-    navigate(`/world/${newWorldId}`, { replace: true });
-    setEntryComplete(false);
-    clearSelection();
-  }, [navigate, clearSelection]);
-
   // Handle building click from 3D renderer
   const handleMapClick = useCallback((click: ClickState) => {
-    // Find which parcel/agent is at this block
     if (!mapData) return;
     const parcel = mapData.parcels.find(
       p => p.blockX === click.blockX && p.blockY === click.blockY
@@ -117,42 +94,240 @@ export function CityCommand() {
     setFloatingPanel(prev => prev === type ? null : type);
   }, []);
 
-  // Keyboard shortcuts: 1-5 switch worlds, ESC close panel
+  // Handle renderer ready
+  const handleRendererReady = useCallback((renderer: CityRenderer3D) => {
+    rendererRef.current = renderer;
+  }, []);
+
+  // Handle viewport change from camera
+  const handleViewportChange = useCallback((bounds: { centerX: number; centerZ: number; width: number; height: number }) => {
+    setViewportBounds(bounds);
+  }, []);
+
+  // Handle minimap click
+  const handleMinimapFlyTo = useCallback((worldX: number, worldZ: number) => {
+    if (rendererRef.current) {
+      rendererRef.current.flyTo(worldX, worldZ);
+    }
+  }, []);
+
+  // Recenter camera on parcel centroid
+  const recenterCamera = useCallback(() => {
+    if (!rendererRef.current || !mapData || mapData.parcels.length === 0) return;
+    let sumX = 0, sumZ = 0;
+    for (const p of mapData.parcels) {
+      sumX += p.bounds.x + p.bounds.width / 2;
+      sumZ += p.bounds.y + p.bounds.height / 2;
+    }
+    rendererRef.current.flyTo(sumX / mapData.parcels.length, sumZ / mapData.parcels.length);
+  }, [mapData]);
+
+  // Keyboard shortcuts: ESC close panel, Home recenter camera
   useEffect(() => {
-    const WORLD_KEYS: Record<string, WorldId> = {
-      '1': 'claude_nation' as WorldId,
-      '2': 'openai_empire' as WorldId,
-      '3': 'gemini_republic' as WorldId,
-      '4': 'grok_syndicate' as WorldId,
-      '5': 'open_frontier' as WorldId,
-    };
-
     const handler = (e: KeyboardEvent) => {
-      // Don't capture when typing in inputs
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
-
       if (e.key === 'Escape') {
         clearSelection();
         setFloatingPanel(null);
-        return;
       }
-
-      const targetWorld = WORLD_KEYS[e.key];
-      if (targetWorld && targetWorld !== worldId) {
-        handleWorldChange(targetWorld);
+      if (e.key === 'Home' || e.key === 'h') {
+        recenterCamera();
       }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [worldId, handleWorldChange, clearSelection]);
+  }, [clearSelection, recenterCamera]);
+
+  // Update marching armies visualization
+  useEffect(() => {
+    if (!rendererRef.current || !loaded) return;
+    // Convert MarchingArmyVisual to MarchingArmyData format
+    const armiesArray = Array.from(marchingArmies.values()).map(army => ({
+      armyId: army.armyId,
+      factionId: army.factionId,
+      fromX: army.fromX,
+      fromY: army.fromY,
+      toX: army.toX,
+      toY: army.toY,
+      progress: army.progress,
+      speed: army.speed,
+      unitCount: army.unitCount,
+    }));
+    rendererRef.current.updateMarchingArmies(armiesArray);
+  }, [marchingArmies, loaded]);
+
+  // Update contested parcels visualization
+  useEffect(() => {
+    if (!rendererRef.current || !loaded) return;
+    const parcelsArray = Array.from(contestedParcels.values());
+    rendererRef.current.updateContestedParcels(parcelsArray);
+  }, [contestedParcels, loaded]);
+
+  // Show floating text when territory is captured
+  useEvent('territory.captured', (data) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    const parcel = mapData.parcels.find(p => p.id === data.parcelId);
+    if (!parcel) return;
+
+    const centerX = parcel.bounds.x + parcel.bounds.width / 2;
+    const centerZ = parcel.bounds.y + parcel.bounds.height / 2;
+
+    rendererRef.current.showFloatingText({
+      text: 'CAPTURED!',
+      x: centerX,
+      z: centerZ,
+      type: 'levelup',
+    });
+  });
+
+  // Show floating text for production ticks (resources produced)
+  useEvent('production.tick', (data: ProductionTick) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    // Find the agent's parcel for positioning
+    const parcel = data.parcelId
+      ? mapData.parcels.find(p => p.id === data.parcelId)
+      : mapData.parcels.find(p => p.blockX === data.blockX && p.blockY === data.blockY);
+    if (!parcel) return;
+
+    const centerX = parcel.bounds.x + parcel.bounds.width / 2;
+    const centerZ = parcel.bounds.y + parcel.bounds.height / 2;
+
+    // Build a summary of production (e.g. "+8 food +4 iron")
+    const items = Object.entries(data.production)
+      .filter(([, amount]) => amount > 0)
+      .map(([resource, amount]) => `+${Math.floor(amount)} ${resource}`)
+      .slice(0, 3); // Max 3 items to keep text short
+
+    if (items.length > 0) {
+      rendererRef.current.showFloatingText({
+        text: items.join(' '),
+        x: centerX,
+        z: centerZ,
+        type: 'reward',
+      });
+    }
+  });
+
+  // Show floating text for resource sales
+  useEvent('market.resource.sold', (data: ResourceSoldEvent) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    const parcel = data.parcelId
+      ? mapData.parcels.find(p => p.id === data.parcelId)
+      : mapData.parcels.find(p => p.blockX === data.blockX && p.blockY === data.blockY);
+    if (!parcel) return;
+
+    const centerX = parcel.bounds.x + parcel.bounds.width / 2;
+    const centerZ = parcel.bounds.y + parcel.bounds.height / 2;
+
+    rendererRef.current.showFloatingText({
+      text: `+${data.totalCredits} gold`,
+      x: centerX,
+      z: centerZ,
+      type: 'reward',
+    });
+  });
+
+  // Show floating text for completed trades
+  useEvent('trade.completed', (data: TradeCompleted) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    // Show on seller's parcel
+    const sellerParcel = mapData.parcels.find(p => p.agentId === data.sellerId);
+    if (sellerParcel) {
+      const cx = sellerParcel.bounds.x + sellerParcel.bounds.width / 2;
+      const cz = sellerParcel.bounds.y + sellerParcel.bounds.height / 2;
+      rendererRef.current.showFloatingText({
+        text: `Sold ${data.quantity} ${data.resourceId}`,
+        x: cx,
+        z: cz,
+        type: 'info',
+      });
+    }
+
+    // Show on buyer's parcel
+    const buyerParcel = mapData.parcels.find(p => p.agentId === data.buyerId);
+    if (buyerParcel) {
+      const cx = buyerParcel.bounds.x + buyerParcel.bounds.width / 2;
+      const cz = buyerParcel.bounds.y + buyerParcel.bounds.height / 2;
+      rendererRef.current.showFloatingText({
+        text: `Bought ${data.quantity} ${data.resourceId}`,
+        x: cx,
+        z: cz,
+        type: 'reward',
+      });
+    }
+  });
+
+  // Show floating text for new trade offers
+  useEvent('trade.offer.created', (data: TradeOfferCreated) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    const sellerParcel = mapData.parcels.find(p => p.agentId === data.sellerId);
+    if (!sellerParcel) return;
+
+    const centerX = sellerParcel.bounds.x + sellerParcel.bounds.width / 2;
+    const centerZ = sellerParcel.bounds.y + sellerParcel.bounds.height / 2;
+
+    rendererRef.current.showFloatingText({
+      text: `Selling ${data.quantity} ${data.resourceId}`,
+      x: centerX,
+      z: centerZ,
+      type: 'info',
+    });
+  });
+
+  // Show floating text when a battle starts
+  useEvent('battle.started', (data: BattleEvent) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    // Find parcel at battle position using attacker/defender agent parcels
+    const parcel = mapData.parcels.find(p => p.agentId === data.attackerId)
+      || mapData.parcels.find(p => p.agentId === data.defenderId);
+    if (!parcel) return;
+
+    const centerX = parcel.bounds.x + parcel.bounds.width / 2;
+    const centerZ = parcel.bounds.y + parcel.bounds.height / 2;
+
+    rendererRef.current.showFloatingText({
+      text: `BATTLE! ${data.attackerName} vs ${data.defenderName}`,
+      x: centerX,
+      z: centerZ,
+      type: 'damage',
+    });
+  });
+
+  // Show floating text when a battle resolves
+  useEvent('battle.resolved', (data: BattleResolvedEvent) => {
+    if (!rendererRef.current || !loaded || !mapData) return;
+
+    const victorName = data.victor === 'attacker' ? data.attackerName
+      : data.victor === 'defender' ? data.defenderName : 'Nobody';
+
+    const parcel = mapData.parcels.find(p => p.agentId === data.attackerId)
+      || mapData.parcels.find(p => p.agentId === data.defenderId);
+    if (!parcel) return;
+
+    const centerX = parcel.bounds.x + parcel.bounds.width / 2;
+    const centerZ = parcel.bounds.y + parcel.bounds.height / 2;
+
+    rendererRef.current.showFloatingText({
+      text: `${victorName} WINS!`,
+      x: centerX,
+      z: centerZ,
+      type: 'levelup',
+    });
+  });
 
   // Compute renderable parcels from map data
   const parcels = useMemo<RenderableParcel[]>(() => {
     if (!mapData) return [];
     return mapData.parcels.map(parcel => {
-      const centerX = parcel.bounds.x + Math.floor(parcel.bounds.width / 2);
-      const centerY = parcel.bounds.y + Math.floor(parcel.bounds.height / 2);
+      const centerX = parcel.bounds.x + Math.floor((parcel.bounds.width - 1) / 2);
+      const centerY = parcel.bounds.y + Math.floor((parcel.bounds.height - 1) / 2);
       const screen = gridToScreen(centerX, centerY);
       return {
         id: parcel.id,
@@ -222,18 +397,8 @@ export function CityCommand() {
     agentPositions,
   }), [activeBattles, agentPositions]);
 
-  // Error: invalid world
-  if (!routeWorldId || !WORLD_THEMES[worldId]) {
-    return (
-      <div style={styles.errorContainer}>
-        <div style={styles.errorText}>{t('worldDetail.worldNotFound')}</div>
-        <Link to="/multiverse" style={styles.backLink}>{'\u2190'} {t('worldDetail.backToMultiverse')}</Link>
-      </div>
-    );
-  }
-
-  // Connection error
-  if (connectionStatus === 'failed') {
+  // Connection error - show error screen
+  if (connectionStatus === 'failed' && loaded) {
     return (
       <div style={styles.errorContainer}>
         <div style={{ fontSize: '3rem' }}>{'{'}</div>
@@ -245,75 +410,60 @@ export function CityCommand() {
     );
   }
 
-  // Entry screen
-  if (!entryComplete) {
-    return (
-      <>
-        <WorldEntryScreen
-          worldName={worldName}
-          worldColor={theme.primary}
-          onComplete={() => setEntryComplete(true)}
-          minDuration={800}
-          dataReady={dataReady}
-        />
-        {mapData && (
-          <div style={{ position: 'fixed', opacity: 0, pointerEvents: 'none' }}>
-            <CityMap
-              timePhase={timeState.phase}
-              mapData={mapData}
-              parcels={parcels}
-              buildings={buildings}
-              objects={objects}
-              worldId={worldId}
-            />
-          </div>
-        )}
-      </>
-    );
-  }
-
   return (
-    <div style={styles.container}>
-      {/* 3D City Viewport - full screen, unobstructed */}
-      <div style={styles.viewport}>
-        <CityMap
-          timePhase={timeState.phase}
-          mapData={mapData}
-          parcels={parcels}
-          buildings={buildings}
-          objects={objects}
-          worldId={worldId}
-          onClick={handleMapClick}
-          battleState={battleState}
-        />
+    <>
+      {/* Game always mounted and rendering (hidden behind loading screen initially) */}
+      <div style={styles.container}>
+        {/* 3D City Viewport - full screen, unobstructed */}
+        <div style={styles.viewport}>
+          <CityMap
+            timePhase={timeState.phase}
+            mapData={mapData}
+            parcels={parcels}
+            buildings={buildings}
+            objects={objects}
+            worldId={'agentropolis' as string}
+            onClick={handleMapClick}
+            battleState={battleState}
+            onRendererReady={handleRendererReady}
+            onViewportChange={handleViewportChange}
+          />
+        </div>
+
+        {/* HUD Layers - absolute positioned over the viewport */}
+        <div style={styles.hudLayer}>
+          {/* Top Bar */}
+          <TopBar />
+
+          {/* Left: Event Feed */}
+          <EventFeed notifications={notifications} />
+
+          {/* Right: Intel Panel (on building click) */}
+          {selected && (
+            <IntelPanel selected={selected} onClose={clearSelection} />
+          )}
+
+          {/* Bottom Bar */}
+          <BottomBar onBadgeClick={handleBadgeClick} />
+
+          {/* Floating Panel (on badge click) */}
+          {floatingPanel && (
+            <FloatingPanel type={floatingPanel} onClose={() => setFloatingPanel(null)} />
+          )}
+
+          {/* Minimap */}
+          {mapData && (
+            <Minimap
+              onFlyTo={handleMinimapFlyTo}
+              viewportBounds={viewportBounds}
+            />
+          )}
+        </div>
       </div>
 
-      {/* HUD Layers - absolute positioned over the viewport */}
-      <div style={styles.hudLayer}>
-        {/* Top Bar */}
-        <TopBar
-          worldId={worldId}
-          onWorldChange={handleWorldChange}
-          worldColor={theme.primary}
-        />
-
-        {/* Left: Event Feed */}
-        <EventFeed notifications={notifications} />
-
-        {/* Right: Intel Panel (on building click) */}
-        {selected && (
-          <IntelPanel selected={selected} onClose={clearSelection} />
-        )}
-
-        {/* Bottom Bar */}
-        <BottomBar onBadgeClick={handleBadgeClick} />
-
-        {/* Floating Panel (on badge click) */}
-        {floatingPanel && (
-          <FloatingPanel type={floatingPanel} onClose={() => setFloatingPanel(null)} />
-        )}
-      </div>
-    </div>
+      {/* Loading screen overlay - sits on top until ready */}
+      {!loaded && <LoadingScreen onReady={() => setLoaded(true)} />}
+    </>
   );
 }
 
@@ -360,11 +510,5 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     borderRadius: '2px',
     cursor: 'pointer',
-  },
-  backLink: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '0.875rem',
-    color: 'var(--text-muted, #666)',
-    textDecoration: 'none',
   },
 };

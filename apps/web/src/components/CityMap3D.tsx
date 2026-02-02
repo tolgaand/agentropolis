@@ -5,12 +5,12 @@
  * All lighting, bloom, and day/night effects handled natively by Three.js.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ParcelInfoPanel } from './ParcelInfoPanel';
 import { EmptyBlockPanel } from './EmptyBlockPanel';
 import { useThreeRenderer } from '../hooks/useThreeRenderer';
-import type { ClickState } from '../lib/map/three/CityRenderer3D';
+import type { ClickState, CityRenderer3D } from '../lib/map/three/CityRenderer3D';
 import type { BattleEffectInput, AgentPositionMap } from '../lib/map/three/ThreeBattleEffects';
 import type {
   RenderableBuilding,
@@ -32,6 +32,8 @@ interface CityMap3DProps {
     activeBattles: BattleEffectInput[];
     agentPositions: AgentPositionMap;
   };
+  onRendererReady?: (renderer: CityRenderer3D) => void;
+  onViewportChange?: (bounds: { centerX: number; centerZ: number; width: number; height: number }) => void;
 }
 
 export function CityMap3D({
@@ -43,10 +45,12 @@ export function CityMap3D({
   worldId,
   onClick,
   battleState,
+  onRendererReady,
+  onViewportChange,
 }: CityMap3DProps): JSX.Element {
   const { t } = useTranslation();
 
-  const { containerRef, hover, zoomPercent } = useThreeRenderer({
+  const { containerRef, hover, zoomPercent, rendererRef } = useThreeRenderer({
     mapData,
     parcels,
     buildings,
@@ -56,6 +60,41 @@ export function CityMap3D({
     onClick,
     battleState,
   });
+
+  // Notify parent when renderer is ready
+  useEffect(() => {
+    if (rendererRef.current && onRendererReady) {
+      onRendererReady(rendererRef.current);
+    }
+  }, [rendererRef.current, onRendererReady]);
+
+  // Poll viewport bounds for minimap
+  useEffect(() => {
+    if (!rendererRef.current || !onViewportChange) return;
+
+    const interval = setInterval(() => {
+      if (rendererRef.current) {
+        const state = (rendererRef.current as any).cameraController?.getState();
+        const camera = (rendererRef.current as any).cameraController?.camera;
+        // Only emit viewport bounds if camera has moved from (0,0) - indicates centering has happened
+        if (state && (Math.abs(state.panX) > 0.1 || Math.abs(state.panZ) > 0.1)) {
+          // Compute actual visible area from orthographic camera frustum and zoom
+          const zoom = state.zoom || 1;
+          const frustumH = camera ? (camera.top - camera.bottom) / zoom : 100;
+          const frustumW = camera ? (camera.right - camera.left) / zoom : 100;
+          // Isometric projection expands ground footprint by ~1.22x vertically
+          onViewportChange({
+            centerX: state.panX || 0,
+            centerZ: state.panZ || 0,
+            width: frustumW * 1.1,
+            height: frustumH * 1.22,
+          });
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [rendererRef.current, onViewportChange]);
 
   // Find hovered building/parcel from hover state
   const hoveredBuilding = useMemo(() => {
@@ -96,7 +135,7 @@ export function CityMap3D({
     <div style={styles.container}>
       <div ref={containerRef} style={styles.rendererContainer} />
 
-      <ParcelInfoPanel parcel={hoveredParcel} mousePosition={mousePosition} />
+      <ParcelInfoPanel parcel={hoveredParcel} mousePosition={mousePosition} buildings={buildings} />
 
       {isEmptyBlock && hover && (
         <EmptyBlockPanel

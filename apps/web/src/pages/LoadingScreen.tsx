@@ -1,296 +1,291 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useRef } from 'react';
 import { useSocketContext, type ConnectionStatus } from '../socket';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-// Asset paths to preload (3D models loaded by ThreeModelLoader at runtime)
-const ASSETS_TO_LOAD: string[] = [];
+THREE.Cache.enabled = true;
 
-// Status message keys for each connection state
-const STATUS_MESSAGE_KEYS: Record<ConnectionStatus, string> = {
-  idle: 'loading.status.idle',
-  connecting: 'loading.status.connecting',
-  connected: 'loading.status.connected',
-  synced: 'loading.status.synced',
-  disconnected: 'loading.status.disconnected',
-  retrying: 'loading.status.retrying',
-  failed: 'loading.status.failed',
+const MODEL_MANIFEST_PATH = '/assets/models/manifest.json';
+const ARTWORK_PATH = '/assets/loading-artwork.webp';
+
+const PROPHECY_TEXT: Record<string, string> = {
+  idle: 'Awakening\u2026',
+  connecting: 'Calling the Council\u2026',
+  connected: 'Raising the City\u2026',
+  synced: 'The Gates Open.',
+  disconnected: 'Signal Lost\u2026',
+  retrying: 'Reaching Out\u2026',
+  failed: 'The Council is Silent.',
 };
 
-export function LoadingScreen() {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
+// ── Burn transition CSS (injected once) ──────────────────────────────
+const BURN_STYLE_ID = 'ls-burn-css';
+function injectBurnCSS() {
+  if (document.getElementById(BURN_STYLE_ID)) return;
+  const s = document.createElement('style');
+  s.id = BURN_STYLE_ID;
+  s.textContent = `
+    @keyframes ls-burn {
+      0%   { -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0%,   black 0%,   black 100%); }
+      20%  { -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 8%,   rgba(0,0,0,.2) 14%, black 22%, black 100%); }
+      50%  { -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 28%,  rgba(0,0,0,.15) 36%, black 48%, black 100%); }
+      80%  { -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 55%,  rgba(0,0,0,.1) 65%, black 80%, black 100%); }
+      100% { -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 100%, black 100%); }
+    }
+    @keyframes ls-glow {
+      0%   { opacity:0; box-shadow: inset 0 0 0 rgba(201,120,20,0); }
+      30%  { opacity:1; box-shadow: inset 0 0 100px rgba(201,120,20,.35), inset 0 0 250px rgba(139,50,0,.2); }
+      70%  { opacity:1; box-shadow: inset 0 0 160px rgba(201,120,20,.5),  inset 0 0 350px rgba(139,50,0,.3); }
+      100% { opacity:0; box-shadow: inset 0 0 0 rgba(201,120,20,0); }
+    }
+    @keyframes ls-content-fade {
+      0%   { opacity:1; transform: translateY(0); }
+      100% { opacity:0; transform: translateY(12px); }
+    }
+    .ls-burning    { animation: ls-burn 1.6s ease-in-out forwards; }
+    .ls-glow       { animation: ls-glow 1.8s ease-out forwards; }
+    .ls-fade-out   { animation: ls-content-fade .6s ease-out forwards; }
+  `;
+  document.head.appendChild(s);
+}
+
+// ── Component ────────────────────────────────────────────────────────
+export function LoadingScreen({ onReady }: { onReady: () => void }) {
   const { connectionStatus, retryIn, reconnect } = useSocketContext();
 
-  const [assetsProgress, setAssetsProgress] = useState(0);
-  const [assetsLoaded, setAssetsLoaded] = useState(false);
-  const [fadeOut, setFadeOut] = useState(false);
-  const [shakeKey, setShakeKey] = useState(0);
+  // Stable ref for onReady to avoid effect re-runs
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
-  // Track previous status to detect retry attempts
-  const prevStatusRef = useRef<ConnectionStatus>(connectionStatus);
+  const [modelsProgress, setModelsProgress] = useState(0);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [artworkLoaded, setArtworkLoaded] = useState(false);
+  const [phase, setPhase] = useState<'loading' | 'burning' | 'done'>('loading');
+  const transitionStartedRef = useRef(false);
 
-  // Check if ready to proceed
-  const isReady = assetsLoaded && connectionStatus === 'synced';
-  const isFailed = connectionStatus === 'failed';
-
-  // Preload assets
-  const preloadAssets = useCallback(async () => {
-    const totalAssets = ASSETS_TO_LOAD.length;
-    let loadedCount = 0;
-
-    const loadImage = (src: string): Promise<void> => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          loadedCount++;
-          setAssetsProgress((loadedCount / totalAssets) * 100);
-          resolve();
-        };
-        img.onerror = () => {
-          loadedCount++;
-          setAssetsProgress((loadedCount / totalAssets) * 100);
-          resolve();
-        };
-        img.src = src;
-      });
+  const connProgress = (s: ConnectionStatus) => {
+    const m: Record<ConnectionStatus, number> = {
+      idle: 0, connecting: 20, connected: 60, synced: 100,
+      disconnected: 30, retrying: 30, failed: 0,
     };
-
-    await Promise.all(ASSETS_TO_LOAD.map(loadImage));
-    setAssetsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    preloadAssets();
-  }, [preloadAssets]);
-
-  // Navigate when ready
-  useEffect(() => {
-    if (!isReady) return;
-
-    const fadeTimer = setTimeout(() => setFadeOut(true), 300);
-    const navTimer = setTimeout(() => navigate('/multiverse'), 1000);
-
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(navTimer);
-    };
-  }, [isReady, navigate]);
-
-  // Trigger shake animation on retry attempt
-  useEffect(() => {
-    const prevStatus = prevStatusRef.current;
-    prevStatusRef.current = connectionStatus;
-
-    // Shake when transitioning from retrying to connecting (new attempt)
-    if (prevStatus === 'retrying' && connectionStatus === 'connecting') {
-      setShakeKey(k => k + 1);
-    }
-  }, [connectionStatus]);
-
-  // Calculate overall progress
-  const getOverallProgress = () => {
-    const assetWeight = 0.3;
-    const connectionWeight = 0.7;
-
-    let connectionProgress = 0;
-    switch (connectionStatus) {
-      case 'idle':
-        connectionProgress = 0;
-        break;
-      case 'connecting':
-        connectionProgress = 20;
-        break;
-      case 'connected':
-        connectionProgress = 60;
-        break;
-      case 'synced':
-        connectionProgress = 100;
-        break;
-      case 'disconnected':
-      case 'retrying':
-        connectionProgress = 30;
-        break;
-      case 'failed':
-        connectionProgress = 0;
-        break;
-    }
-
-    return (assetsProgress * assetWeight) + (connectionProgress * connectionWeight);
+    return m[s] ?? 0;
   };
 
-  const progress = getOverallProgress();
-  const statusMessage = t(STATUS_MESSAGE_KEYS[connectionStatus]);
-  const isError = connectionStatus === 'disconnected' || connectionStatus === 'failed';
+  const isReady = modelsLoaded && connectionStatus === 'synced';
+  const isFailed = connectionStatus === 'failed';
+  const progress = Math.min(100, connProgress(connectionStatus) * 0.4 + modelsProgress * 0.6);
+  const prophecy = PROPHECY_TEXT[connectionStatus] || 'Loading\u2026';
+
+  // Inject CSS once and clean up on unmount
+  useEffect(() => {
+    injectBurnCSS();
+    return () => {
+      const styleEl = document.getElementById(BURN_STYLE_ID);
+      if (styleEl) {
+        styleEl.remove();
+      }
+    };
+  }, []);
+
+  // Preload artwork via <img> onLoad (no separate Image() needed)
+  // artworkLoaded is set by the img onLoad below
+
+  // Preload 3D models
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(MODEL_MANIFEST_PATH);
+        if (!res.ok || cancelled) { setModelsProgress(100); setModelsLoaded(true); return; }
+        const manifest = await res.json();
+        if (!manifest.source || cancelled) { setModelsProgress(100); setModelsLoaded(true); return; }
+
+        const dir = MODEL_MANIFEST_PATH.substring(0, MODEL_MANIFEST_PATH.lastIndexOf('/'));
+        const loader = new GLTFLoader();
+        const draco = new DRACOLoader();
+        draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+        draco.setDecoderConfig({ type: 'js' });
+        loader.setDRACOLoader(draco);
+
+        await new Promise<void>(resolve => {
+          loader.load(
+            `${dir}/${manifest.source}`,
+            () => { if (!cancelled) { setModelsProgress(100); setModelsLoaded(true); } resolve(); },
+            (e) => { if (!cancelled && e.lengthComputable) setModelsProgress((e.loaded / e.total) * 100); },
+            () => { if (!cancelled) { setModelsProgress(100); setModelsLoaded(true); } resolve(); },
+          );
+        });
+      } catch { if (!cancelled) { setModelsProgress(100); setModelsLoaded(true); } }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Transition: show "The Gates Open." → burn → done
+  useEffect(() => {
+    if (!isReady || transitionStartedRef.current) return;
+    transitionStartedRef.current = true;
+
+    // 700ms to read "The Gates Open.", then start burn
+    const t1 = setTimeout(() => setPhase('burning'), 700);
+    // 700 + 1600 burn = 2300ms total, then signal parent
+    const t2 = setTimeout(() => {
+      setPhase('done');
+      onReadyRef.current();
+    }, 2300);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [isReady]); // no onReady in deps — use ref
+
+  if (phase === 'done') return null;
+
+  const isBurning = phase === 'burning';
 
   return (
     <div
-      key={shakeKey}
+      className={isBurning ? 'ls-burning' : undefined}
       style={{
         position: 'fixed',
         inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1a1209 0%, #221a0f 50%, #2a2015 100%)',
-        transition: 'opacity 0.7s ease-out',
-        opacity: fadeOut ? 0 : 1,
-        animation: shakeKey > 0 ? 'shake 0.5s ease-in-out' : 'none',
+        zIndex: 9999,
+        background: '#110e08',
+        pointerEvents: isBurning ? 'none' : 'auto',
       }}
     >
-      {/* Logo */}
+      {/* ── Artwork layer ── */}
       <div style={{
-        marginBottom: '3rem',
-        animation: isFailed ? 'none' : 'pulse 2s ease-in-out infinite',
-      }}>
-        <h1 style={{
-          fontSize: '4rem',
-          fontWeight: 200,
-          letterSpacing: '0.3em',
-          color: isFailed ? '#8b0000' : '#c9a84c',
-          textShadow: isFailed ? '0 0 40px rgba(139, 0, 0, 0.5)' : '0 0 40px rgba(201, 168, 76, 0.5)',
-          margin: 0,
-        }}>
-          AGENTROPOLIS
-        </h1>
-        <p style={{
-          textAlign: 'center',
-          fontSize: '0.9rem',
-          color: '#786850',
-          letterSpacing: '0.2em',
-          marginTop: '0.5rem',
-          fontFamily: 'var(--font-mono)',
-        }}>
-          {t('loading.tagline')}
-        </p>
-      </div>
-
-      {/* Progress Bar */}
-      <div style={{
-        width: '300px',
-        height: '4px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '2px',
-        overflow: 'hidden',
-        marginBottom: '0.5rem',
-      }}>
-        <div style={{
-          width: `${progress}%`,
-          height: '100%',
-          background: isError
-            ? 'linear-gradient(90deg, #8b0000, #a0392a)'
-            : 'linear-gradient(90deg, #c9a84c, #cd7f32)',
-          borderRadius: '2px',
-          transition: 'width 0.3s ease-out',
-          boxShadow: isError
-            ? '0 0 10px rgba(139, 0, 0, 0.5)'
-            : '0 0 10px rgba(201, 168, 76, 0.5)',
-        }} />
-      </div>
-
-      {/* Status Indicators */}
-      <div style={{
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
-        gap: '2rem',
-        marginBottom: '1rem',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.7rem',
-        color: '#584830',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: assetsLoaded ? '#2d5a27' : '#c9a84c',
-            boxShadow: assetsLoaded ? '0 0 6px #2d5a27' : 'none',
-          }} />
-          {t('loading.assets')} {assetsLoaded ? t('common.loaded') : t('common.loading')}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: connectionStatus === 'synced' ? '#2d5a27'
-              : isError ? '#8b0000'
-              : '#c9a84c',
-            boxShadow: connectionStatus === 'synced' ? '0 0 6px #2d5a27'
-              : isError ? '0 0 6px #8b0000'
-              : 'none',
-            animation: connectionStatus === 'connecting' || connectionStatus === 'retrying'
-              ? 'blink 1s infinite'
-              : 'none',
-          }} />
-          {t('loading.uplink')} {connectionStatus === 'synced' ? t('common.active') : isError ? t('common.error') : t('common.pending')}
-        </div>
+        <img
+          src={ARTWORK_PATH}
+          alt=""
+          onLoad={() => setArtworkLoaded(true)}
+          onError={() => setArtworkLoaded(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center 30%', // keep top part (title) visible
+            opacity: artworkLoaded ? Math.min(1, progress / 50) : 0,
+            transition: 'opacity 1s ease-out',
+            filter: isBurning ? 'brightness(1.1) saturate(1.2)' : 'brightness(0.95)',
+          }}
+        />
       </div>
 
-      {/* Status Message */}
-      <p style={{
-        fontSize: '0.8rem',
-        color: isError ? '#a0392a' : '#786850',
-        letterSpacing: '0.1em',
-        fontFamily: 'var(--font-mono)',
-      }}>
-        {statusMessage}
-        {connectionStatus === 'retrying' && retryIn !== null && (
-          <span style={{ color: '#c9a84c' }}> [{retryIn}s]</span>
-        )}
-      </p>
+      {/* ── Vignette ── */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(17,14,8,0.75) 100%)',
+        pointerEvents: 'none',
+      }} />
 
-      {/* Retry Button (only on failed state) */}
-      {isFailed && (
-        <button
-          onClick={reconnect}
-          style={{
-            marginTop: '1.5rem',
-            padding: '0.75rem 2rem',
-            background: 'transparent',
-            border: '1px solid #8b0000',
-            color: '#8b0000',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.8rem',
-            letterSpacing: '0.1em',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#8b0000';
-            e.currentTarget.style.color = '#1a1209';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#8b0000';
-          }}
-        >
-          {t('loading.retryConnection')}
-        </button>
+      {/* ── Bottom gradient ── */}
+      <div style={{
+        position: 'absolute',
+        left: 0, right: 0, bottom: 0,
+        height: '35%',
+        background: 'linear-gradient(to top, rgba(17,14,8,0.97) 0%, rgba(17,14,8,0.5) 55%, transparent 100%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* ── Burn glow overlay ── */}
+      {isBurning && (
+        <div className="ls-glow" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
       )}
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.8; }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10% { transform: translateX(-8px) rotate(-0.5deg); }
-          20% { transform: translateX(8px) rotate(0.5deg); }
-          30% { transform: translateX(-6px) rotate(-0.3deg); }
-          40% { transform: translateX(6px) rotate(0.3deg); }
-          50% { transform: translateX(-4px) rotate(-0.2deg); }
-          60% { transform: translateX(4px) rotate(0.2deg); }
-          70% { transform: translateX(-2px) rotate(-0.1deg); }
-          80% { transform: translateX(2px) rotate(0.1deg); }
-          90% { transform: translateX(-1px); }
-        }
-      `}</style>
+      {/* ── UI content ── */}
+      <div
+        className={isBurning ? 'ls-fade-out' : undefined}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingBottom: '5vh',
+          gap: 0,
+        }}
+      >
+        <p style={{
+          fontSize: 'clamp(0.85rem, 1.1vw, 1.1rem)',
+          color: '#c9a84c',
+          letterSpacing: '0.3em',
+          fontFamily: 'var(--font-mono, monospace)',
+          textTransform: 'uppercase',
+          textShadow: '0 0 20px rgba(201,168,76,0.35), 0 2px 6px rgba(0,0,0,0.9)',
+          margin: '0 0 20px 0',
+        }}>
+          {prophecy}
+        </p>
+
+        {/* Progress bar */}
+        <div style={{
+          width: 'clamp(200px, 25vw, 320px)',
+          height: '2px',
+          background: 'rgba(201,168,76,0.1)',
+          borderRadius: '1px',
+          overflow: 'hidden',
+          marginBottom: '10px',
+        }}>
+          <div style={{
+            width: `${progress}%`,
+            height: '100%',
+            background: isFailed ? '#8b2020' : 'linear-gradient(90deg, #8b6914, #c9a84c)',
+            borderRadius: '1px',
+            transition: 'width 0.5s ease-out',
+            boxShadow: isFailed ? '0 0 6px rgba(139,32,32,.5)' : '0 0 6px rgba(201,168,76,.35)',
+          }} />
+        </div>
+
+        <p style={{
+          fontSize: '0.6rem',
+          color: 'rgba(201,168,76,0.3)',
+          fontFamily: 'var(--font-mono, monospace)',
+          letterSpacing: '0.12em',
+          margin: 0,
+        }}>
+          {Math.round(progress)}%
+        </p>
+
+        {isFailed && (
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{
+              fontSize: '0.75rem', color: '#8b2020',
+              fontFamily: 'var(--font-mono, monospace)', margin: '0 0 10px 0',
+            }}>
+              Connection failed
+              {retryIn !== null && <span style={{ color: '#c9a84c' }}> [{retryIn}s]</span>}
+            </p>
+            <button
+              onClick={reconnect}
+              style={{
+                padding: '7px 22px',
+                background: 'rgba(139,32,32,0.2)',
+                border: '1px solid rgba(139,32,32,0.5)',
+                color: '#c9a84c',
+                fontFamily: 'var(--font-mono, monospace)',
+                fontSize: '0.7rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,32,32,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,32,32,0.2)'; }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

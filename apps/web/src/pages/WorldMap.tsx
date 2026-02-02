@@ -65,11 +65,11 @@ const WORLD_THEMES: Record<WorldId, {
 };
 
 const WORLD_NAMES: Record<WorldId, string> = {
-  claude_nation: 'Claude Kingdom',
-  openai_empire: 'OpenAI Empire',
-  gemini_republic: 'Gemini Dominion',
-  grok_syndicate: 'Grok Guild',
-  open_frontier: 'Open Frontier Marches',
+  claude_nation: 'Claude Vanguard',
+  openai_empire: 'OpenAI Legion',
+  gemini_republic: 'Gemini Collective',
+  grok_syndicate: 'Grok Syndicate',
+  open_frontier: 'Neutral Zone',
 };
 
 export function WorldMap() {

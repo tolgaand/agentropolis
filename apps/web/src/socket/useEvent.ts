@@ -34,6 +34,8 @@ export function useEvent<E extends keyof ServerToClientEvents>(
   const memoizedHandler = useCallback(handler, []);
 
   useEffect(() => {
+    if (!socket) return;
+
     socket.on(event, memoizedHandler as never);
 
     return () => {
@@ -63,6 +65,8 @@ export function useEvents(
   const socket = useSocket();
 
   useEffect(() => {
+    if (!socket) return;
+
     const entries = Object.entries(handlers) as Array<
       [keyof ServerToClientEvents, ServerToClientEvents[keyof ServerToClientEvents]]
     >;

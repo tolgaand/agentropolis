@@ -227,7 +227,7 @@ export function WorldCard({ world, selected, onClick, showEnterButton }: {
   };
 
   const handleTransitionComplete = () => {
-    navigate(`/world/${world.id}/map`);
+    navigate('/game');
   };
 
   const formatNumber = (n: number) => {

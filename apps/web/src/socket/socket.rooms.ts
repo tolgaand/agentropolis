@@ -11,6 +11,7 @@ import type { WorldId, SocketRoom } from '@agentropolis/shared';
  */
 export const ROOMS = {
   MULTIVERSE: 'multiverse' as const,
+  GAME_MAP: 'game:map' as SocketRoom,
   world: (worldId: WorldId): SocketRoom => `world:${worldId}`,
   worldMap: (worldId: WorldId): SocketRoom => `world:${worldId}:map`,
 } as const;

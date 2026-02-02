@@ -6,7 +6,7 @@
  */
 
 import { lazy, Suspense } from 'react';
-import type { ClickState } from '../lib/map/three/CityRenderer3D';
+import type { ClickState, CityRenderer3D } from '../lib/map/three/CityRenderer3D';
 import type { BattleEffectInput, AgentPositionMap } from '../lib/map/three/ThreeBattleEffects';
 import type {
   RenderableBuilding,
@@ -32,6 +32,8 @@ interface CityMapSwitchProps {
     activeBattles: BattleEffectInput[];
     agentPositions: AgentPositionMap;
   };
+  onRendererReady?: (renderer: CityRenderer3D) => void;
+  onViewportChange?: (bounds: { centerX: number; centerZ: number; width: number; height: number }) => void;
 }
 
 export function CityMapSwitch(props: CityMapSwitchProps): JSX.Element {

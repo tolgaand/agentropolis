@@ -1,28 +1,38 @@
 /**
- * ParcelInfoPanel - Medieval Parcel Info Card
+ * ParcelInfoPanel - Compact Parcel Info Card
  *
- * Medieval-themed parcel information panel with terrain details,
- * fertility stars, and resource bonuses.
- * Shows different info for seed/founder parcels vs regular parcels.
+ * Redesigned for vertical compactness with collapsible sections.
+ * Max height: 400px with scroll overflow.
  */
 
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RenderableParcel } from '../lib/map/types';
+import type { RenderableParcel, RenderableBuilding } from '../lib/map/types';
+import { getBuildingInfo } from '../config/buildingInfo';
 import './ParcelInfoPanel.css';
 
 interface ParcelInfoPanelProps {
   parcel: RenderableParcel | null;
   mousePosition: { x: number; y: number };
+  buildings?: RenderableBuilding[];
 }
 
-// AI Model to World name mapping
-const WORLD_NAMES: Record<string, string> = {
-  claude_nation: 'Claude Nation',
-  openai_empire: 'OpenAI Empire',
-  gemini_republic: 'Gemini Republic',
+// AI Model to Faction name mapping
+const FACTION_NAMES: Record<string, string> = {
+  claude_nation: 'Claude Vanguard',
+  openai_empire: 'OpenAI Legion',
+  gemini_republic: 'Gemini Collective',
   grok_syndicate: 'Grok Syndicate',
-  open_frontier: 'Open Frontier',
+  open_frontier: 'None',
+};
+
+// Faction icons
+const FACTION_ICONS: Record<string, string> = {
+  claude_nation: '🟣',
+  openai_empire: '🟢',
+  gemini_republic: '🔵',
+  grok_syndicate: '🟡',
+  open_frontier: '⚪',
 };
 
 // Terrain types with colors and icons
@@ -63,10 +73,11 @@ const TERRAIN_BONUSES: Record<string, { resource: string; multiplier: number }[]
   ],
 };
 
-export function ParcelInfoPanel({ parcel, mousePosition }: ParcelInfoPanelProps): JSX.Element | null {
+export function ParcelInfoPanel({ parcel, mousePosition, buildings = [] }: ParcelInfoPanelProps): JSX.Element | null {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [displayParcel, setDisplayParcel] = useState<RenderableParcel | null>(null);
+  const [buildingsExpanded, setBuildingsExpanded] = useState(false);
 
   // Animate in/out with delay
   useEffect(() => {
@@ -76,6 +87,7 @@ export function ParcelInfoPanel({ parcel, mousePosition }: ParcelInfoPanelProps)
       return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
+      setBuildingsExpanded(false); // Reset expansion on close
       const timer = setTimeout(() => setDisplayParcel(null), 300);
       return () => clearTimeout(timer);
     }
@@ -96,11 +108,18 @@ export function ParcelInfoPanel({ parcel, mousePosition }: ParcelInfoPanelProps)
     return isOld || hasFounderName;
   }, [displayParcel]);
 
+  // Find buildings on this parcel
+  const parcelBuildings = useMemo(() => {
+    if (!displayParcel) return [];
+    return buildings.filter(b => b.parcelId === displayParcel.id);
+  }, [displayParcel, buildings]);
+
   if (!displayParcel) return null;
 
-  // Get world info
+  // Get faction info
   const worldId = displayParcel.worldId || 'open_frontier';
-  const worldName = WORLD_NAMES[worldId] || 'Unknown World';
+  const factionName = FACTION_NAMES[worldId] || 'None';
+  const factionIcon = FACTION_ICONS[worldId] || '⚪';
 
   // Get terrain info
   const terrain = displayParcel.terrain || 'plains';
@@ -109,7 +128,7 @@ export function ParcelInfoPanel({ parcel, mousePosition }: ParcelInfoPanelProps)
   const fertilityStars = displayParcel.fertilityStars || 3;
 
   // Calculate panel position (avoid viewport edges)
-  const panelX = Math.min(mousePosition.x + 24, window.innerWidth - 380);
+  const panelX = Math.min(mousePosition.x + 24, window.innerWidth - 300);
   const panelY = Math.max(mousePosition.y - 20, 10);
 
   return (
@@ -124,88 +143,119 @@ export function ParcelInfoPanel({ parcel, mousePosition }: ParcelInfoPanelProps)
       }}
     >
       <div className="parcel-panel-content">
-        {/* Header with agent info */}
+        {/* Header: Agent Name + Faction Badge (single line) */}
         <div className="parcel-panel-header">
-          <div className="parcel-header-title">
-            <div className="parcel-agent-name">
-              {displayParcel.agentName || displayParcel.agentId.slice(0, 12)}
-            </div>
-            {isFounder && (
-              <div className="parcel-founder-badge">
-                <span className="founder-icon">👑</span>
-                {t('parcelInfo.founder')}
-              </div>
-            )}
+          <span className="faction-icon">{factionIcon}</span>
+          <span className="parcel-agent-name">
+            {displayParcel.agentName || displayParcel.agentId.slice(0, 12)}
+          </span>
+          {isFounder && (
+            <span className="parcel-founder-badge" title="Founder">👑</span>
+          )}
+        </div>
+
+        {/* Terrain + Fertility (single line) */}
+        <div className="terrain-line">
+          <span className="terrain-icon" style={{ filter: `drop-shadow(0 0 3px ${terrainInfo.color})` }}>
+            {terrainInfo.icon}
+          </span>
+          <span className="terrain-name" style={{ color: terrainInfo.color }}>
+            {terrainInfo.label}
+          </span>
+          <div className="fertility-stars">
+            {Array.from({ length: 5 }, (_, i) => (
+              <span key={i} className={`star ${i < fertilityStars ? 'filled' : 'empty'}`}>
+                {i < fertilityStars ? '★' : '☆'}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Terrain Section */}
-        <div className="parcel-terrain-section">
-          <div className="terrain-header">
-            <span className="terrain-icon" style={{ filter: `drop-shadow(0 0 4px ${terrainInfo.color})` }}>
-              {terrainInfo.icon}
-            </span>
-            <span className="terrain-name" style={{ color: terrainInfo.color }}>
-              {terrainInfo.label}
-            </span>
-          </div>
+        {/* Thin divider */}
+        <div className="divider" />
 
-          {/* Fertility Stars */}
-          <div className="fertility-display">
-            <span className="fertility-label">{t('parcelInfo.fertility')}:</span>
-            <div className="fertility-stars">
-              {Array.from({ length: 5 }, (_, i) => (
-                <span key={i} className={`star ${i < fertilityStars ? 'filled' : 'empty'}`}>
-                  {i < fertilityStars ? '★' : '☆'}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Resource Bonuses */}
+        {/* Resource Bonuses Grid (2 columns) */}
         {bonuses.length > 0 && (
-          <div className="parcel-bonuses-section">
-            <div className="bonuses-label">{t('parcelInfo.resourceBonuses')}</div>
-            <div className="bonuses-grid">
-              {bonuses.map(({ resource, multiplier }) => (
-                <div key={resource} className="bonus-item">
-                  <span className="bonus-resource">{resource}</span>
-                  <span className={`bonus-multiplier ${multiplier >= 1 ? 'positive' : 'negative'}`}>
-                    ×{multiplier.toFixed(1)}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="bonuses-grid">
+            {bonuses.map(({ resource, multiplier }) => (
+              <div key={resource} className="bonus-item">
+                <span className="bonus-resource">{resource}</span>
+                <span className={`bonus-multiplier ${multiplier >= 1 ? 'positive' : 'negative'}`}>
+                  ×{multiplier.toFixed(1)}
+                </span>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Stats grid */}
-        <div className="parcel-stats-grid">
-          <div className="parcel-stat-item">
-            <div className="parcel-stat-label">{t('parcelInfo.registered')}</div>
-            <div className="parcel-stat-value">{timeAgo}</div>
+        {/* Thin divider */}
+        {bonuses.length > 0 && <div className="divider" />}
+
+        {/* Buildings Section - Collapsible */}
+        {parcelBuildings.length > 0 && (
+          <div className="buildings-section">
+            <button
+              className="buildings-toggle"
+              onClick={(e) => {
+                e.stopPropagation();
+                setBuildingsExpanded(!buildingsExpanded);
+              }}
+            >
+              <span className="buildings-label">Buildings ({parcelBuildings.length})</span>
+              <span className="toggle-icon">{buildingsExpanded ? '▲' : '▼'}</span>
+            </button>
+
+            {buildingsExpanded && (
+              <div className="buildings-list">
+                {parcelBuildings.map(building => {
+                  const info = getBuildingInfo(building.type);
+                  return (
+                    <div key={building.id} className="building-item">
+                      <span className="building-icon">{info?.icon ?? '🏛️'}</span>
+                      <span className="building-name">
+                        {building.name || building.type}
+                      </span>
+                      <span className="building-level">Lv{building.level}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <div className="parcel-stat-item">
-            <div className="parcel-stat-label">{t('parcelInfo.size')}</div>
-            <div className="parcel-stat-value">{displayParcel.bounds.width}×{displayParcel.bounds.height}</div>
+        )}
+
+        {/* Thin divider */}
+        {parcelBuildings.length > 0 && <div className="divider" />}
+
+        {/* Stats grid (2 columns) */}
+        <div className="stats-grid">
+          <div className="stat-item">
+            <span className="stat-label">Size</span>
+            <span className="stat-value">{displayParcel.bounds.width}×{displayParcel.bounds.height}</span>
           </div>
-          <div className="parcel-stat-item">
-            <div className="parcel-stat-label">{t('parcelInfo.location')}</div>
-            <div className="parcel-stat-value">[{displayParcel.blockX}, {displayParcel.blockY}]</div>
+          <div className="stat-item">
+            <span className="stat-label">Loc</span>
+            <span className="stat-value">[{displayParcel.blockX},{displayParcel.blockY}]</span>
           </div>
-          <div className="parcel-stat-item">
-            <div className="parcel-stat-label">{t('parcelInfo.realm')}</div>
-            <div className="parcel-stat-value">{worldName}</div>
+          <div className="stat-item">
+            <span className="stat-label">Faction</span>
+            <span className="stat-value">{factionName}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Reg</span>
+            <span className="stat-value">{timeAgo}</span>
           </div>
         </div>
 
         {/* Legacy message (if exists) */}
         {displayParcel.legacyMessage && (
-          <div className="parcel-legacy-section">
-            <div className="parcel-legacy-label">{t('parcelInfo.legacyMessage')}</div>
-            <div className="parcel-legacy-message">{displayParcel.legacyMessage}</div>
-          </div>
+          <>
+            <div className="divider" />
+            <div className="legacy-message">
+              <span className="legacy-icon">💬</span>
+              <span className="legacy-text">{displayParcel.legacyMessage}</span>
+            </div>
+          </>
         )}
       </div>
     </div>

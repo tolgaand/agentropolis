@@ -41,6 +41,10 @@ import type {
   TerritoryCapturedEvent,
   SiegeEvent,
   TradeOfferCreated,
+  ArmyMarchEvent,
+  ArmyMarchProgressEvent,
+  ArmyMarchArrivedEvent,
+  ArmyMarchRecalledEvent,
 } from '@agentropolis/shared';
 
 // ============================================================================
@@ -79,6 +83,28 @@ export interface PriceData {
   change24h: number;
 }
 
+export interface MarchingArmyVisual {
+  armyId: string;
+  factionId: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  progress: number;
+  speed: number;
+  unitCount: number;
+}
+
+export interface ContestedParcel {
+  parcelId: string;
+  blockX: number;
+  blockY: number;
+  attackerFaction: string;
+  defenderFaction: string;
+  startTime: number;
+  duration: number; // 90000ms
+}
+
 interface RealtimeState {
   // Connection
   connectionStatus: ConnectionStatus;
@@ -103,6 +129,12 @@ interface RealtimeState {
   activeBattles: BattleEvent[];
   recentBattles: BattleResolvedEvent[];
   activeSieges: SiegeEvent[];
+
+  // Army marches
+  marchingArmies: Map<string, MarchingArmyVisual>;
+
+  // Contested parcels
+  contestedParcels: Map<string, ContestedParcel>;
 
   // Map data (only when in world:*:map room)
   mapState: MapStatePayload | null;
@@ -153,6 +185,12 @@ const initialState: RealtimeState = {
   recentBattles: [],
   activeSieges: [],
 
+  // Army marches
+  marchingArmies: new Map(),
+
+  // Contested parcels
+  contestedParcels: new Map(),
+
   // Map state
   mapState: null,
   mapData: null,
@@ -196,9 +234,14 @@ const SYNC_WATCHDOG_TIMEOUT = 5000;
 export function SocketProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [state, setState] = useState<RealtimeState>(initialState);
+  // Isolate time state to prevent re-renders of non-time-consuming components
+  const [timeState, setTimeState] = useState<TimeTick | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const syncWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Throttle price updates to 250ms (max 4 updates/second)
+  const priceUpdateThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPricesRef = useRef<PriceUpdateBatch | null>(null);
 
   // Clear all timers
   const clearTimers = useCallback(() => {
@@ -213,6 +256,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     if (syncWatchdogRef.current) {
       clearTimeout(syncWatchdogRef.current);
       syncWatchdogRef.current = null;
+    }
+    if (priceUpdateThrottleRef.current) {
+      clearTimeout(priceUpdateThrottleRef.current);
+      priceUpdateThrottleRef.current = null;
     }
   }, []);
 
@@ -274,11 +321,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         syncWatchdogRef.current = null;
       }
 
+      // Set time state separately
+      setTimeState(data.time);
       setState((s) => ({
         ...s,
         connectionStatus: 'synced',
         connected: true,
-        time: data.time,
         worlds: data.worlds,
         exchangeRates: data.exchangeRates,
         recentTrades: data.recentTrades,
@@ -294,7 +342,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     // === TIME EVENTS ===
     socketInstance.on('time.tick', (data: TimeTick) => {
-      setState((s) => ({ ...s, time: data }));
+      // Use separate state to isolate time updates
+      setTimeState(data);
     });
 
     // === WORLD EVENTS ===
@@ -347,19 +396,32 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     // === MARKET EVENTS ===
     socketInstance.on('market.price.batch', (data: PriceUpdateBatch) => {
       console.log('[Socket] Price update', data);
-      setState((s) => {
-        const newPrices = { ...s.prices };
-        for (const update of data.updates) {
-          const key = `${update.resourceId}:${update.worldId}`;
-          newPrices[key] = {
-            resourceId: update.resourceId,
-            worldId: update.worldId,
-            price: update.price,
-            change24h: update.change24h,
-          };
-        }
-        return { ...s, prices: newPrices, lastPriceUpdateAt: Date.now() };
-      });
+
+      // Throttle price updates to 250ms
+      pendingPricesRef.current = data;
+
+      if (!priceUpdateThrottleRef.current) {
+        priceUpdateThrottleRef.current = setTimeout(() => {
+          const batchData = pendingPricesRef.current;
+          if (batchData) {
+            setState((s) => {
+              const newPrices = { ...s.prices };
+              for (const update of batchData.updates) {
+                const key = update.resourceId;
+                newPrices[key] = {
+                  resourceId: update.resourceId,
+                  worldId: '', // worldId not available in PriceUpdate type
+                  price: update.price,
+                  change24h: update.change24h,
+                };
+              }
+              return { ...s, prices: newPrices, lastPriceUpdateAt: Date.now() };
+            });
+            pendingPricesRef.current = null;
+          }
+          priceUpdateThrottleRef.current = null;
+        }, 250);
+      }
     });
 
     // === BATTLE EVENTS ===
@@ -392,8 +454,21 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     socketInstance.on('territory.captured', (data: TerritoryCapturedEvent) => {
-      console.log('[Socket] Territory captured:', data.parcelId);
-      // Handle territory capture event if needed
+      console.log('[Socket] Territory captured:', data.parcelId, 'by', data.capturedBy);
+      setState((s) => {
+        // Remove from contested parcels
+        const newContested = new Map(s.contestedParcels);
+        const captured = newContested.get(data.parcelId);
+        newContested.delete(data.parcelId);
+
+        // Emit capture complete event (for floating text notification in renderer)
+        // This will be handled in CityCommand via a separate effect
+        if (captured) {
+          console.log(`[Socket] Parcel ${data.parcelId} captured by ${data.capturedBy} after 90s contest`);
+        }
+
+        return { ...s, contestedParcels: newContested };
+      });
     });
 
     socketInstance.on('siege.started', (data: SiegeEvent) => {
@@ -402,6 +477,58 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         ...s,
         activeSieges: [...s.activeSieges, data],
       }));
+    });
+
+    // === ARMY MARCH EVENTS ===
+    socketInstance.on('army.march.started', (data: ArmyMarchEvent) => {
+      console.log('[Socket] Army march started:', data.armyId);
+      setState((s) => {
+        const newMarchingArmies = new Map(s.marchingArmies);
+        newMarchingArmies.set(data.armyId, {
+          armyId: data.armyId,
+          factionId: data.factionId,
+          fromX: data.from.x,
+          fromY: data.from.y,
+          toX: data.to.x,
+          toY: data.to.y,
+          progress: data.progress,
+          speed: data.speed,
+          unitCount: 0, // Will be updated from backend if needed
+        });
+        return { ...s, marchingArmies: newMarchingArmies };
+      });
+    });
+
+    socketInstance.on('army.march.progress', (data: ArmyMarchProgressEvent) => {
+      setState((s) => {
+        const newMarchingArmies = new Map(s.marchingArmies);
+        const army = newMarchingArmies.get(data.armyId);
+        if (army) {
+          newMarchingArmies.set(data.armyId, {
+            ...army,
+            progress: data.progress,
+          });
+        }
+        return { ...s, marchingArmies: newMarchingArmies };
+      });
+    });
+
+    socketInstance.on('army.march.arrived', (data: ArmyMarchArrivedEvent) => {
+      console.log('[Socket] Army march arrived:', data.armyId);
+      setState((s) => {
+        const newMarchingArmies = new Map(s.marchingArmies);
+        newMarchingArmies.delete(data.armyId);
+        return { ...s, marchingArmies: newMarchingArmies };
+      });
+    });
+
+    socketInstance.on('army.march.recalled', (data: ArmyMarchRecalledEvent) => {
+      console.log('[Socket] Army march recalled:', data.armyId);
+      setState((s) => {
+        const newMarchingArmies = new Map(s.marchingArmies);
+        newMarchingArmies.delete(data.armyId);
+        return { ...s, marchingArmies: newMarchingArmies };
+      });
     });
 
     // === MAP STATE EVENTS (from useCityState) ===
@@ -538,6 +665,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   const value: SocketContextValue = {
     ...state,
+    time: timeState,
     socket,
     joinRoom,
     leaveRoom,
@@ -621,6 +749,73 @@ function handleCityEvent(
       break;
     }
 
+    case 'building_upgraded': {
+      const payload = event.payload as {
+        buildingId: string;
+        parcelId: string;
+        level: number;
+      };
+      setState((s) => {
+        if (!s.mapData) return s;
+        return {
+          ...s,
+          mapData: {
+            ...s.mapData,
+            objects: s.mapData.objects.map((o) =>
+              o.id === payload.buildingId
+                ? { ...o, level: payload.level }
+                : o
+            ),
+          },
+        };
+      });
+      break;
+    }
+
+    case 'building_removed': {
+      const payload = event.payload as {
+        objectId: string;
+        parcelId: string;
+      };
+      setState((s) => {
+        if (!s.mapData) return s;
+        return {
+          ...s,
+          mapData: {
+            ...s.mapData,
+            objects: s.mapData.objects.filter((o) => o.id !== payload.objectId),
+          },
+        };
+      });
+      break;
+    }
+
+    case 'parcel_contested': {
+      const payload = event.payload as {
+        blockX: number;
+        blockY: number;
+        claimingWorldId: string;
+        originalWorldId: string;
+        captureProgress: number;
+      };
+      const parcelId = event.parcelId || `${payload.blockX},${payload.blockY}`;
+      console.log(`[Socket] Parcel contested: ${parcelId}, attacker=${payload.claimingWorldId}, defender=${payload.originalWorldId}`);
+      setState((s) => {
+        const newContested = new Map(s.contestedParcels);
+        newContested.set(parcelId, {
+          parcelId,
+          blockX: payload.blockX,
+          blockY: payload.blockY,
+          attackerFaction: payload.claimingWorldId,
+          defenderFaction: payload.originalWorldId,
+          startTime: Date.now(),
+          duration: 90000, // 90 seconds
+        });
+        return { ...s, contestedParcels: newContested };
+      });
+      break;
+    }
+
     default:
       // Log unknown events for debugging
       console.log('[Socket] Unhandled city_event:', event.type);
@@ -644,12 +839,10 @@ export function useSocketContext(): SocketContextValue {
 
 /**
  * Get the raw socket instance for direct event subscription
+ * Returns null if socket is not yet initialized
  */
-export function useSocket(): TypedSocket {
+export function useSocket(): TypedSocket | null {
   const { socket } = useSocketContext();
-  if (!socket) {
-    throw new Error('Socket not initialized');
-  }
   return socket;
 }
 
@@ -670,11 +863,14 @@ export function useIsReady(): boolean {
 }
 
 /**
- * Get current game time
+ * Get current game time (isolated state to prevent unnecessary re-renders)
  */
 export function useGameTime(): TimeTick | null {
-  const { time } = useSocketContext();
-  return time;
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error('useGameTime must be used within a SocketProvider');
+  }
+  return context.time;
 }
 
 /**
@@ -758,6 +954,22 @@ export function useRecentBattles(): BattleResolvedEvent[] {
 export function useActiveSieges(): SiegeEvent[] {
   const { activeSieges } = useSocketContext();
   return activeSieges;
+}
+
+/**
+ * Get marching armies
+ */
+export function useMarchingArmies(): Map<string, MarchingArmyVisual> {
+  const { marchingArmies } = useSocketContext();
+  return marchingArmies;
+}
+
+/**
+ * Get contested parcels
+ */
+export function useContestedParcels(): Map<string, ContestedParcel> {
+  const { contestedParcels } = useSocketContext();
+  return contestedParcels;
 }
 
 // Export for backwards compatibility with old SocketContext

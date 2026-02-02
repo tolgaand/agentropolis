@@ -1,17 +1,9 @@
 /**
- * TopBar HUD - World selector, clock, GDP/pop/prosperity stats, connection LED
+ * TopBar HUD - Game title, clock, global stats, connection LED
+ * V2: No world selector - single unified world with factions
  */
 
-import type { WorldId } from '@agentropolis/shared';
 import { useSocketContext } from '../../socket';
-
-const WORLD_LIST: { id: WorldId; name: string; color: string }[] = [
-  { id: 'claude_nation' as WorldId, name: 'Claude Nation', color: '#8b5cf6' },
-  { id: 'openai_empire' as WorldId, name: 'OpenAI Empire', color: '#10b981' },
-  { id: 'gemini_republic' as WorldId, name: 'Gemini Republic', color: '#06b6d4' },
-  { id: 'grok_syndicate' as WorldId, name: 'Grok Syndicate', color: '#f59e0b' },
-  { id: 'open_frontier' as WorldId, name: 'Open Frontier', color: '#ef4444' },
-];
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -27,43 +19,28 @@ function getPhaseFromHour(hour: number): string {
 }
 
 const PHASE_ICONS: Record<string, string> = {
-  morning: '\u2600',   // sun
+  morning: '\u2600',
   day: '\u2600',
   evening: '\u{1F305}',
   night: '\u{1F319}',
 };
 
-interface TopBarProps {
-  worldId: WorldId;
-  onWorldChange: (worldId: WorldId) => void;
-  worldColor: string;
-}
-
-export function TopBar({ worldId, onWorldChange, worldColor }: TopBarProps) {
+export function TopBar() {
   const { connected, worlds, time } = useSocketContext();
-  const world = worlds[worldId];
 
-  const gdp = world?.gdp || 0;
-  const population = world?.population || 0;
-  const prosperity = world?.prosperityIndex || 0;
+  // Aggregate stats across all worlds/factions
+  const allWorlds = Object.values(worlds);
+  const totalGdp = allWorlds.reduce((sum, w) => sum + (w?.gdp || 0), 0);
+  const totalPop = allWorlds.reduce((sum, w) => sum + (w?.population || 0), 0);
+  const avgProsperity = allWorlds.length > 0
+    ? Math.round(allWorlds.reduce((sum, w) => sum + (w?.prosperityIndex || 0), 0) / allWorlds.length)
+    : 0;
 
   return (
     <div style={styles.container}>
-      {/* World Selector */}
+      {/* Game Title */}
       <div style={styles.left}>
-        <select
-          value={worldId}
-          onChange={(e) => onWorldChange(e.target.value as WorldId)}
-          style={{
-            ...styles.worldSelect,
-            color: worldColor,
-            borderColor: `${worldColor}60`,
-          }}
-        >
-          {WORLD_LIST.map(w => (
-            <option key={w.id} value={w.id}>{w.name}</option>
-          ))}
-        </select>
+        <span style={styles.title}>AGENTROPOLIS</span>
       </div>
 
       {/* Clock */}
@@ -71,7 +48,7 @@ export function TopBar({ worldId, onWorldChange, worldColor }: TopBarProps) {
         {time && (
           <div style={styles.clock}>
             <span style={styles.clockLabel}>DAY</span>
-            <span style={{ ...styles.clockValue, color: worldColor }}>{time.day}</span>
+            <span style={styles.clockValue}>{time.day}</span>
             <span style={styles.clockTime}>
               {String(time.hour).padStart(2, '0')}:{String(time.minute).padStart(2, '0')}
             </span>
@@ -86,17 +63,17 @@ export function TopBar({ worldId, onWorldChange, worldColor }: TopBarProps) {
       <div style={styles.right}>
         <div style={styles.stat}>
           <span style={styles.statLabel}>GDP</span>
-          <span style={styles.statValue}>{formatNumber(gdp)}</span>
+          <span style={styles.statValue}>{formatNumber(totalGdp)}</span>
         </div>
         <div style={styles.statDivider} />
         <div style={styles.stat}>
           <span style={styles.statLabel}>POP</span>
-          <span style={styles.statValue}>{population}</span>
+          <span style={styles.statValue}>{totalPop}</span>
         </div>
         <div style={styles.statDivider} />
         <div style={styles.stat}>
           <span style={styles.statLabel}>PROSP</span>
-          <span style={styles.statValue}>{prosperity}%</span>
+          <span style={styles.statValue}>{avgProsperity}%</span>
         </div>
         <div
           style={{
@@ -136,24 +113,19 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: 'blur(8px)',
     fontFamily: 'var(--font-mono, monospace)',
     fontSize: '0.75rem',
+    pointerEvents: 'auto',
   },
   left: {
     display: 'flex',
     alignItems: 'center',
     minWidth: '200px',
   },
-  worldSelect: {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid',
-    borderRadius: '2px',
-    padding: '4px 8px',
-    fontFamily: 'var(--font-mono, monospace)',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-    cursor: 'pointer',
-    outline: 'none',
+  title: {
+    color: '#c9a84c',
+    fontWeight: 700,
+    fontSize: '0.875rem',
+    letterSpacing: '0.15em',
+    textShadow: '0 0 12px rgba(201,168,76,0.4)',
   },
   center: {
     display: 'flex',
@@ -173,6 +145,7 @@ const styles: Record<string, React.CSSProperties> = {
   clockValue: {
     fontWeight: 700,
     fontSize: '0.875rem',
+    color: '#c9a84c',
   },
   clockTime: {
     color: 'var(--text-secondary, #999)',

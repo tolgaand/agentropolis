@@ -93,6 +93,7 @@ export function useMapData() {
         screenX: screen.x,
         screenY: screen.y,
         drawOrder: getDrawOrder(obj.gridX, obj.gridY),
+        isSystemOwned: obj.isSystemOwned,
       };
     })
     .sort((a, b) => a.drawOrder - b.drawOrder);

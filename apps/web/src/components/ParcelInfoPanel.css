@@ -1,6 +1,6 @@
 /* ========================================
-   ParcelInfoPanel - Medieval Parcel Info
-   Parchment/wood aesthetic with gold accents
+   ParcelInfoPanel - Compact Info Card
+   Redesigned for vertical compactness
    ======================================== */
 
 /* CSS Variables for theming */
@@ -11,124 +11,105 @@
   --ink: hsla(var(--hue), 40%, 88%, 0.95);
   --bg: hsla(var(--hue), 30%, 10%, 0.94);
   --edge: hsla(var(--hue), 50%, 50%, 0.25);
-  --texture: hsla(var(--hue), 40%, 40%, 0.05);
 
   position: fixed;
   z-index: 1000;
-  min-width: 300px;
-  max-width: 360px;
+  min-width: 240px;
+  max-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
   pointer-events: none;
 
-  /* Parchment/wood morphism */
+  /* Compact dark card */
   color: var(--ink);
-  background: linear-gradient(
-    135deg,
-    hsla(var(--hue), 35%, 12%, 0.96) 0%,
-    hsla(var(--hue), 25%, 8%, 0.94) 100%
-  );
-  backdrop-filter: blur(12px) saturate(1.1);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  background: rgba(26, 20, 8, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 
-  /* Medieval border */
-  border: 1px solid var(--edge);
+  /* Subtle border */
+  border: 1px solid rgba(201, 168, 76, 0.4);
   border-radius: 4px;
-
-  /* Cut corner effect */
-  clip-path: polygon(
-    0 0,
-    calc(100% - 16px) 0,
-    100% 16px,
-    100% 100%,
-    16px 100%,
-    0 calc(100% - 16px)
-  );
 
   /* Initial hidden state */
   opacity: 0;
-  transform: translate3d(0, 12px, 0) scale(0.96);
-  filter: blur(2px);
+  transform: translate3d(0, 8px, 0) scale(0.96);
+  filter: blur(1px);
 
   will-change: transform, opacity, filter;
+
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 168, 76, 0.3) transparent;
 }
 
-/* Visible state with medieval reveal animation */
+.parcel-info-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.parcel-info-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.parcel-info-panel::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 2px;
+}
+
+/* Visible state */
 .parcel-info-panel.visible {
   opacity: 1;
-  pointer-events: none;
-  animation:
-    medieval-reveal 420ms cubic-bezier(0.16, 0.84, 0.34, 1) forwards,
-    gold-shimmer 4s ease-in-out infinite 0.5s;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+  transition: all 0.2s cubic-bezier(0.16, 0.84, 0.34, 1);
   box-shadow:
-    0 0 20px var(--glow-soft),
-    0 0 40px hsla(var(--hue), 60%, 50%, 0.12),
-    inset 0 0 16px hsla(var(--hue), 60%, 50%, 0.04);
+    0 0 16px rgba(201, 168, 76, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* Founder parcel special styling */
 .parcel-info-panel.founder {
   --hue: 45;
-  border: 2px solid hsla(45, 80%, 60%, 0.6);
+  border: 1px solid rgba(201, 168, 76, 0.6);
   box-shadow:
-    0 0 30px hsla(45, 80%, 60%, 0.3),
-    0 0 50px hsla(45, 80%, 50%, 0.2),
-    inset 0 0 20px hsla(45, 80%, 60%, 0.1);
-}
-
-/* ========================================
-   Parchment Texture Overlay
-   ======================================== */
-.parcel-info-panel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 50;
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0px,
-    transparent 3px,
-    var(--texture) 3px,
-    var(--texture) 4px
-  );
-  mix-blend-mode: overlay;
-  opacity: 0.3;
+    0 0 20px rgba(201, 168, 76, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* ========================================
    Content Wrapper
    ======================================== */
 .parcel-panel-content {
-  padding: 18px;
+  padding: 8px 12px;
   position: relative;
   z-index: 1;
 }
 
 /* ========================================
-   Header Section
+   Header Section (single line)
    ======================================== */
 .parcel-panel-header {
-  margin-bottom: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid hsla(var(--hue), 50%, 50%, 0.2);
-}
-
-.parcel-header-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+}
+
+.faction-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .parcel-agent-name {
-  font-family: var(--font-display, 'Cinzel', serif);
-  font-size: 1rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #fff;
-  text-shadow:
-    0 0 8px hsla(var(--hue), 60%, 60%, 0.5),
-    0 0 14px hsla(var(--hue), 60%, 50%, 0.25);
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -137,345 +118,170 @@
 }
 
 .parcel-founder-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  background: linear-gradient(135deg, hsla(45, 80%, 60%, 0.25), hsla(45, 70%, 50%, 0.2));
-  border: 1px solid hsla(45, 80%, 65%, 0.5);
-  border-radius: 3px;
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: hsla(45, 90%, 75%, 1);
-  text-shadow: 0 0 6px hsla(45, 80%, 60%, 0.6);
-  animation: founder-glow 2s ease-in-out infinite;
-}
-
-.founder-icon {
-  font-size: 0.8rem;
-  filter: drop-shadow(0 0 4px hsla(45, 80%, 60%, 0.8));
+  font-size: 12px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
 }
 
 /* ========================================
-   Terrain Section
+   Terrain Line (single line)
    ======================================== */
-.parcel-terrain-section {
-  margin-bottom: 14px;
-  padding: 12px;
-  background: hsla(var(--hue), 30%, 12%, 0.4);
-  border: 1px solid hsla(var(--hue), 40%, 35%, 0.2);
-  border-radius: 3px;
-}
-
-.terrain-header {
+.terrain-line {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
 }
 
 .terrain-icon {
-  font-size: 1.5rem;
+  font-size: 14px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .terrain-name {
-  font-family: var(--font-display, 'Cinzel', serif);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: 0 0 6px currentColor;
-}
-
-.fertility-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid hsla(var(--hue), 40%, 40%, 0.15);
-}
-
-.fertility-label {
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.65rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: hsla(var(--hue), 40%, 65%, 0.8);
+  flex: 1;
 }
 
 .fertility-stars {
   display: flex;
-  gap: 2px;
+  gap: 1px;
+  flex-shrink: 0;
 }
 
 .star {
-  font-size: 0.9rem;
+  font-size: 10px;
   line-height: 1;
 }
 
 .star.filled {
   color: #ffd700;
-  text-shadow: 0 0 6px #ffd700;
-  animation: star-twinkle 2s ease-in-out infinite;
+  text-shadow: 0 0 4px #ffd700;
 }
 
 .star.empty {
-  color: hsla(45, 40%, 40%, 0.4);
+  color: rgba(255, 215, 0, 0.2);
 }
 
 /* ========================================
-   Resource Bonuses Section
+   Divider
    ======================================== */
-.parcel-bonuses-section {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  background: hsla(var(--hue), 30%, 8%, 0.3);
-  border: 1px solid hsla(var(--hue), 40%, 35%, 0.15);
-  border-radius: 3px;
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 168, 76, 0.2),
+    transparent
+  );
+  margin: 6px 0;
 }
 
-.bonuses-label {
-  font-family: var(--font-display, 'Cinzel', serif);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: hsla(var(--hue), 40%, 65%, 0.7);
-  margin-bottom: 8px;
-}
-
+/* ========================================
+   Resource Bonuses Grid (2 columns)
+   ======================================== */
 .bonuses-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
+  margin-bottom: 6px;
 }
 
 .bonus-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
-  background: hsla(var(--hue), 30%, 15%, 0.3);
-  border: 1px solid hsla(var(--hue), 40%, 30%, 0.2);
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 168, 76, 0.15);
   border-radius: 2px;
 }
 
 .bonus-resource {
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.7rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
   font-weight: 600;
-  color: hsla(var(--hue), 40%, 75%, 0.9);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .bonus-multiplier {
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.7rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
 }
 
 .bonus-multiplier.positive {
   color: #00ff88;
-  text-shadow: 0 0 4px #00ff88;
+  text-shadow: 0 0 3px #00ff88;
 }
 
 .bonus-multiplier.negative {
   color: #ff8844;
-  text-shadow: 0 0 4px #ff8844;
+  text-shadow: 0 0 3px #ff8844;
 }
 
 /* ========================================
-   Stats Grid
+   Buildings Section - Collapsible
    ======================================== */
-.parcel-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.parcel-stat-item {
-  padding: 10px 12px;
-  background: hsla(var(--hue), 30%, 12%, 0.5);
-  border: 1px solid hsla(var(--hue), 40%, 35%, 0.15);
-  position: relative;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateX(-8px);
-  animation: stat-slide-in 0.35s ease-out forwards;
-}
-
-.parcel-stat-item:nth-child(1) { animation-delay: 0.12s; }
-.parcel-stat-item:nth-child(2) { animation-delay: 0.18s; }
-.parcel-stat-item:nth-child(3) { animation-delay: 0.24s; }
-.parcel-stat-item:nth-child(4) { animation-delay: 0.30s; }
-
-.parcel-stat-item::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    hsla(var(--hue), 60%, 50%, 0.3),
-    transparent
-  );
-}
-
-.parcel-stat-label {
-  font-family: var(--font-display, 'Cinzel', serif);
-  font-size: 0.55rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: hsla(var(--hue), 40%, 65%, 0.6);
-  margin-bottom: 4px;
-}
-
-.parcel-stat-value {
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #fff;
-  text-shadow: 0 0 5px hsla(var(--hue), 60%, 60%, 0.3);
-}
-
-/* ========================================
-   Legacy Message Section
-   ======================================== */
-.parcel-legacy-section {
-  padding: 12px 14px;
-  background: linear-gradient(
-    135deg,
-    hsla(45, 60%, 45%, 0.1),
-    hsla(35, 50%, 35%, 0.08)
-  );
-  border: 1px solid hsla(45, 50%, 45%, 0.25);
-  border-radius: 3px;
-  position: relative;
-  opacity: 0;
-  animation: legacy-fade-in 0.4s ease-out 0.35s forwards;
-}
-
-.parcel-legacy-section::before {
-  content: '\201C';
-  position: absolute;
-  top: 6px;
-  left: 8px;
-  font-size: 1.8rem;
-  font-family: serif;
-  color: hsla(45, 50%, 55%, 0.25);
-  line-height: 1;
-}
-
-.parcel-legacy-label {
-  font-family: var(--font-display, 'Cinzel', serif);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: hsla(45, 60%, 60%, 0.85);
+.buildings-section {
   margin-bottom: 6px;
 }
 
-.parcel-legacy-message {
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.8rem;
-  font-style: italic;
-  color: hsla(45, 50%, 80%, 0.9);
-  line-height: 1.45;
-  padding-left: 14px;
+.buildings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  pointer-events: auto;
 }
 
-/* ========================================
-   Keyframe Animations
-   ======================================== */
-
-/* Medieval reveal effect */
-@keyframes medieval-reveal {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 12px, 0) scale(0.96);
-    filter: blur(2px);
-  }
-  30% {
-    opacity: 0.7;
-    transform: translate3d(0, 3px, 0) scale(0.98);
-    filter: blur(1px);
-  }
-  60% {
-    opacity: 0.95;
-    transform: translate3d(0, -1px, 0) scale(1.01);
-    filter: blur(0.3px);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0);
-  }
+.buildings-toggle:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(201, 168, 76, 0.3);
 }
 
-/* Idle gold shimmer */
-@keyframes gold-shimmer {
-  0%, 100% {
-    box-shadow:
-      0 0 20px var(--glow-soft),
-      0 0 40px hsla(var(--hue), 60%, 50%, 0.12);
-  }
-  50% {
-    box-shadow:
-      0 0 26px hsla(var(--hue), 60%, 55%, 0.25),
-      0 0 50px hsla(var(--hue), 60%, 50%, 0.15);
-  }
+.buildings-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.9);
 }
 
-/* Founder badge glow */
-@keyframes founder-glow {
-  0%, 100% {
-    box-shadow: 0 0 8px hsla(45, 80%, 60%, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 12px hsla(45, 80%, 60%, 0.6);
-  }
+.toggle-icon {
+  font-size: 8px;
+  color: rgba(201, 168, 76, 0.7);
 }
 
-/* Star twinkle */
-@keyframes star-twinkle {
-  0%, 100% {
-    opacity: 1;
-    text-shadow: 0 0 6px #ffd700;
-  }
-  50% {
-    opacity: 0.7;
-    text-shadow: 0 0 10px #ffd700;
-  }
+.buildings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 4px 0;
+  animation: expand-list 0.2s ease-out;
 }
 
-/* Stat slide in */
-@keyframes stat-slide-in {
+@keyframes expand-list {
   from {
     opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Legacy fade in */
-@keyframes legacy-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
@@ -483,52 +289,134 @@
   }
 }
 
+.building-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+.building-icon {
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.building-name {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.building-level {
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(201, 168, 76, 0.8);
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   Stats Grid (2 columns)
+   ======================================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-radius: 2px;
+}
+
+.stat-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.6);
+}
+
+.stat-value {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ========================================
+   Legacy Message Section
+   ======================================== */
+.legacy-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-radius: 2px;
+}
+
+.legacy-icon {
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.legacy-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
 /* ========================================
    World Theme Variants
    ======================================== */
 .parcel-info-panel[data-world="claude_nation"] {
   --hue: 270;
+  border-color: rgba(138, 43, 226, 0.4);
 }
 
 .parcel-info-panel[data-world="openai_empire"] {
   --hue: 140;
+  border-color: rgba(34, 197, 94, 0.4);
 }
 
 .parcel-info-panel[data-world="gemini_republic"] {
   --hue: 190;
+  border-color: rgba(0, 217, 255, 0.4);
 }
 
 .parcel-info-panel[data-world="grok_syndicate"] {
   --hue: 40;
+  border-color: rgba(201, 168, 76, 0.4);
 }
 
 .parcel-info-panel[data-world="open_frontier"] {
   --hue: 15;
-}
-
-/* Terrain color variants */
-.parcel-info-panel[data-terrain="plains"] {
-  --terrain-accent: #d4af37;
-}
-
-.parcel-info-panel[data-terrain="forest"] {
-  --terrain-accent: #228b22;
-}
-
-.parcel-info-panel[data-terrain="mountain"] {
-  --terrain-accent: #8b7355;
-}
-
-.parcel-info-panel[data-terrain="mine"] {
-  --terrain-accent: #696969;
-}
-
-.parcel-info-panel[data-terrain="river"] {
-  --terrain-accent: #4682b4;
-}
-
-.parcel-info-panel[data-terrain="volcanic"] {
-  --terrain-accent: #ff4500;
+  border-color: rgba(255, 68, 68, 0.4);
 }
 
 /* ========================================
@@ -536,20 +424,16 @@
    ======================================== */
 @media (max-width: 640px) {
   .parcel-info-panel {
-    min-width: 260px;
-    max-width: 300px;
+    min-width: 200px;
+    max-width: 240px;
   }
 
   .parcel-panel-content {
-    padding: 14px;
+    padding: 6px 10px;
   }
 
   .parcel-agent-name {
-    font-size: 0.85rem;
-  }
-
-  .terrain-icon {
-    font-size: 1.2rem;
+    font-size: 10px;
   }
 
   .bonuses-grid {

@@ -1,44 +1,34 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SocketProvider } from './socket';
-import { RequireConnection } from './components/RequireConnection';
-import { LoadingScreen } from './pages/LoadingScreen';
-import { Multiverse } from './pages/Multiverse';
 import { CityCommand } from './pages/CityCommand';
-import { Hacks } from './pages/Hacks';
+
+const MapTest = lazy(() => import('./pages/MapTest'));
 
 export function App() {
   return (
     <SocketProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public route - Loading/Connection gate */}
-          <Route path="/" element={<LoadingScreen />} />
+          {/* Map prototype test - no socket needed */}
+          <Route path="/map-test" element={
+            <Suspense fallback={<div style={{ background: '#000', color: '#fff', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>}>
+              <MapTest />
+            </Suspense>
+          } />
 
-          {/* Protected routes - require synced connection */}
-          <Route
-            path="/multiverse"
-            element={
-              <RequireConnection>
-                <Multiverse />
-              </RequireConnection>
-            }
-          />
-          <Route
-            path="/world/:worldId"
-            element={
-              <RequireConnection>
-                <CityCommand />
-              </RequireConnection>
-            }
-          />
-          <Route
-            path="/hacks"
-            element={
-              <RequireConnection>
-                <Hacks />
-              </RequireConnection>
-            }
-          />
+          {/* Main game - single world, loading handled internally */}
+          <Route path="/" element={<CityCommand />} />
+
+          {/* Legacy redirects */}
+          <Route path="/game" element={<Navigate to="/" replace />} />
+          <Route path="/multiverse" element={<Navigate to="/" replace />} />
+          <Route path="/world/:worldId" element={<Navigate to="/" replace />} />
+          <Route path="/world/:worldId/map" element={<Navigate to="/" replace />} />
+          <Route path="/hacks" element={<Navigate to="/" replace />} />
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </SocketProvider>

@@ -2,7 +2,7 @@
  * BottomBar HUD - Ops counter badges + scrolling price ticker
  */
 
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSocketContext, usePrices, useConnectionStatus } from '../../socket';
 
@@ -61,7 +61,7 @@ interface BottomBarProps {
   onBadgeClick?: (type: 'battles' | 'trades' | 'sieges') => void;
 }
 
-export function BottomBar({ onBadgeClick }: BottomBarProps) {
+export const BottomBar = memo(function BottomBar({ onBadgeClick }: BottomBarProps) {
   const { t } = useTranslation();
   const { activeBattles, activeOffers, activeSieges } = useSocketContext();
   const { prices } = usePrices();
@@ -185,9 +185,9 @@ export function BottomBar({ onBadgeClick }: BottomBarProps) {
       <style>{bottomBarStyles}</style>
     </div>
   );
-}
+});
 
-function TickerItem({ data }: { data: PriceDisplayData }) {
+const TickerItem = memo(function TickerItem({ data }: { data: PriceDisplayData }) {
   const isUp = data.change > 0;
   const isDown = data.change < 0;
   const color = isUp ? 'var(--success, #10b981)' : isDown ? 'var(--error, #ef4444)' : 'var(--text-muted, #666)';
@@ -205,7 +205,7 @@ function TickerItem({ data }: { data: PriceDisplayData }) {
       </span>
     </span>
   );
-}
+});
 
 const bottomBarStyles = `
   @keyframes bottombar-pulse {
