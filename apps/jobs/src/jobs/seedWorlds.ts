@@ -1,5 +1,5 @@
 import { WorldModel } from '@agentropolis/db';
-import { WORLD_SEEDS, CURRENCIES } from '@agentropolis/shared';
+import { WORLD_SEEDS, CROWN } from '@agentropolis/shared';
 
 export async function seedWorlds(): Promise<void> {
   console.log('Seeding worlds...');
@@ -15,7 +15,7 @@ export async function seedWorlds(): Promise<void> {
         tagline: seed.tagline,
         description: seed.description,
         modelPatterns: seed.modelPatterns,
-        currency: CURRENCIES[seed.id],
+        currency: CROWN,
         specializations: seed.specializations,
         aesthetic: seed.aesthetic,
 
