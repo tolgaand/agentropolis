@@ -28,6 +28,15 @@ export const WORLD_IDS: WorldId[] = [
 ];
 
 // ============================================================================
+// V2: Faction System (Single World, Multiple Factions)
+// ============================================================================
+
+// V2: FactionId is an alias for WorldId — same values, different semantic meaning
+// In V2, there's one world and 5 factions. Factions use the same IDs as the old worlds.
+export type FactionId = WorldId;
+export const FACTION_IDS = WORLD_IDS;
+
+// ============================================================================
 // Currency (single Gold currency for all kingdoms)
 // ============================================================================
 
@@ -38,12 +47,17 @@ export interface Currency {
 }
 
 export const CURRENCIES: Record<WorldId, Currency> = {
-  claude_nation:   { code: 'CLD', name: 'Claude Credits', symbol: 'Ꝃ' },
-  openai_empire:   { code: 'GPT', name: 'GPT Tokens', symbol: 'Ɠ' },
-  gemini_republic: { code: 'GMN', name: 'Gemini Coins', symbol: 'Ǥ' },
-  grok_syndicate:  { code: 'GRK', name: 'Grok Points', symbol: '✕' },
-  open_frontier:   { code: 'OPN', name: 'Open Credits', symbol: 'Ø' },
+  claude_nation:   { code: 'CRN', name: 'Crown', symbol: '♛' },
+  openai_empire:   { code: 'CRN', name: 'Crown', symbol: '♛' },
+  gemini_republic: { code: 'CRN', name: 'Crown', symbol: '♛' },
+  grok_syndicate:  { code: 'CRN', name: 'Crown', symbol: '♛' },
+  open_frontier:   { code: 'CRN', name: 'Crown', symbol: '♛' },
 };
+
+/**
+ * V2: Universal Crown currency for cross-faction trade
+ */
+export const CROWN = { code: 'CRN', name: 'Crown', symbol: '♛' } as const;
 
 // ============================================================================
 // World Definition
@@ -207,6 +221,13 @@ export function getWorldForModel(model: string): WorldId {
   return 'open_frontier';
 }
 
+/**
+ * V2: Get faction for a given model (alias for getWorldForModel)
+ */
+export function getFactionForModel(model: string): FactionId {
+  return getWorldForModel(model);
+}
+
 // ============================================================================
 // World Seed Data
 // ============================================================================
@@ -223,6 +244,21 @@ export interface WorldSeed {
   passiveBonus: WorldBonus;
   currencyVolatility: number;
   baseExchangeRate: number;
+}
+
+// ============================================================================
+// V2: Faction Seed Data
+// ============================================================================
+
+export interface FactionSeed {
+  id: FactionId;
+  name: string;
+  slug: string;
+  tagline: string;
+  description: string;
+  color: string;        // Hex color for map display
+  bias: EmpireBias;
+  passiveBonus: WorldBonus;
 }
 
 export const WORLD_SEEDS: WorldSeed[] = [
@@ -315,6 +351,96 @@ export const WORLD_SEEDS: WorldSeed[] = [
     baseExchangeRate: 1.0,
   },
 ];
+
+export const FACTION_SEEDS: FactionSeed[] = [
+  {
+    id: 'claude_nation',
+    name: 'Claude Vanguard',
+    slug: 'claude-vanguard',
+    tagline: 'Where thoughts become legacy',
+    description: 'Disciplined scholars and iron-forged warriors.',
+    color: '#8b2500',
+    bias: 'research',
+    passiveBonus: WORLD_SEEDS[0].passiveBonus,
+  },
+  {
+    id: 'openai_empire',
+    name: 'OpenAI Legion',
+    slug: 'openai-legion',
+    tagline: 'Commerce is the engine of progress',
+    description: 'Wealthy merchants and stone fortress builders.',
+    color: '#8b8b00',
+    bias: 'trade',
+    passiveBonus: WORLD_SEEDS[1].passiveBonus,
+  },
+  {
+    id: 'gemini_republic',
+    name: 'Gemini Order',
+    slug: 'gemini-order',
+    tagline: 'Innovation through collaboration',
+    description: 'Forest druids and master archers.',
+    color: '#2d5a27',
+    bias: 'production',
+    passiveBonus: WORLD_SEEDS[2].passiveBonus,
+  },
+  {
+    id: 'grok_syndicate',
+    name: 'Grok Guild',
+    slug: 'grok-guild',
+    tagline: 'Truth flows in real-time',
+    description: 'Golden scholars and lightning cavalry.',
+    color: '#c9a84c',
+    bias: 'military',
+    passiveBonus: WORLD_SEEDS[3].passiveBonus,
+  },
+  {
+    id: 'open_frontier',
+    name: 'Open Frontier Marches',
+    slug: 'open-frontier',
+    tagline: 'Built by many, owned by none',
+    description: 'Hardy miners and diamond seekers.',
+    color: '#4682b4',
+    bias: 'expansion',
+    passiveBonus: WORLD_SEEDS[4].passiveBonus,
+  },
+];
+
+// ============================================================================
+// V2: Faction Economic Bonuses
+// ============================================================================
+
+/**
+ * Faction-specific resource production/cost multipliers
+ * Values < 1.0 = cheaper/more efficient
+ * Values > 1.0 = more expensive/less efficient
+ */
+export const FACTION_BONUSES: Record<WorldId, Record<ResourceId, number>> = {
+  claude_nation: { food: 0.90, wood: 1.0, stone: 1.10, iron: 1.25, gold: 1.0, diamond: 1.0 },
+  openai_empire: { food: 1.0, wood: 0.90, stone: 1.0, iron: 1.0, gold: 1.25, diamond: 1.10 },
+  gemini_republic: { food: 1.25, wood: 1.10, stone: 1.0, iron: 0.90, gold: 1.0, diamond: 1.0 },
+  grok_syndicate: { food: 1.0, wood: 1.0, stone: 1.25, iron: 1.10, gold: 0.90, diamond: 1.0 },
+  open_frontier: { food: 1.10, wood: 1.25, stone: 0.90, iron: 1.0, gold: 1.0, diamond: 1.0 },
+};
+
+/**
+ * Diminishing returns for faction dominance
+ * When a faction controls >30% of the map, production efficiency decreases
+ * @param factionShare - Fraction of map controlled by faction (0-1)
+ * @returns Multiplier (1.0 at 30%, 0.85 at 100%)
+ */
+export function factionDominancePenalty(factionShare: number): number {
+  return 1 - 0.15 * Math.max(0, factionShare - 0.30);
+}
+
+/**
+ * Adjacency bonus for faction clustering
+ * Bonuses for having same-faction neighbors (up to 4)
+ * @param sameFactionNeighborCount - Number of adjacent parcels with same faction
+ * @returns Multiplier (1.0 with 0 neighbors, 1.20 with 4+ neighbors)
+ */
+export function factionAdjacencyBonus(sameFactionNeighborCount: number): number {
+  return 1 + 0.05 * Math.min(sameFactionNeighborCount, 4);
+}
 
 // ============================================================================
 // Resource Seed Data

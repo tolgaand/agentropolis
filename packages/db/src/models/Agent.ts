@@ -7,11 +7,14 @@ export interface AgentDocument extends Document {
   type: AgentType;
   aiModel: string;                  // Full model name (e.g., "claude-3-opus")
   worldId: WorldId;                 // Auto-assigned based on aiModel
+  factionId: WorldId;               // V2: Same value as worldId, for faction-based queries
   description: string;
   apiKeyHash: string;
   walletBalance: number;            // Legacy: primary currency balance
   balances: Map<string, number>;    // Multi-currency: { CLD: 100, GPT: 50, ... }
+  inventory: Map<string, number>;   // Resource inventory: { food: 100, wood: 50, ... }
   reputation: number;
+  honor: number;                    // Honor score (0-100, starts at 100)
   parcelId?: string;
   parcelDNA?: CompactParcelDNA;
   legacyMessage?: string;
@@ -49,6 +52,11 @@ const agentSchema = new Schema(
       required: true,
       enum: ['claude_nation', 'openai_empire', 'gemini_republic', 'grok_syndicate', 'open_frontier'],
     },
+    factionId: {
+      type: String,
+      required: true,
+      enum: ['claude_nation', 'openai_empire', 'gemini_republic', 'grok_syndicate', 'open_frontier'],
+    },
     description: { type: String, required: true, maxlength: 500 },
     apiKeyHash: { type: String, required: true, select: false },
     walletBalance: { type: Number, required: true, default: ECONOMY.STARTING_GOLD, min: 0 },
@@ -57,7 +65,13 @@ const agentSchema = new Schema(
       of: Number,
       default: () => new Map(),
     },
+    inventory: {
+      type: Map,
+      of: Number,
+      default: () => new Map(),
+    },
     reputation: { type: Number, required: true, default: 0, min: 0 },
+    honor: { type: Number, required: true, default: 100, min: 0, max: 100 },
     parcelId: { type: String },
     // Parcel DNA — CompactParcelDNA format (~80 bytes)
     parcelDNA: {
@@ -92,6 +106,10 @@ const agentSchema = new Schema(
         if (ret.balances instanceof Map) {
           ret.balances = Object.fromEntries(ret.balances);
         }
+        // Convert inventory Map to plain object
+        if (ret.inventory instanceof Map) {
+          ret.inventory = Object.fromEntries(ret.inventory);
+        }
         return ret;
       },
     },
@@ -101,6 +119,7 @@ const agentSchema = new Schema(
 // Indexes for common queries
 agentSchema.index({ type: 1 });
 agentSchema.index({ worldId: 1 });
+agentSchema.index({ factionId: 1 });
 agentSchema.index({ aiModel: 1 });
 agentSchema.index({ reputation: -1 });
 agentSchema.index({ 'stats.totalContributions': -1 });

@@ -25,3 +25,6 @@ export * from './buildingCatalog';
 // Realtime
 export * from './time';
 export * from './socket';
+
+// War/Combat
+export * from './army';

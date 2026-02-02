@@ -19,6 +19,12 @@
 import type { TimePhase, TimeState } from './time';
 import type { MapData, MapParcel, MapObject } from './map';
 import type { WorldId, ResourceId } from './world';
+import type {
+  ArmyMarchEvent,
+  ArmyMarchProgressEvent,
+  ArmyMarchArrivedEvent,
+  ArmyMarchRecalledEvent
+} from './army';
 
 // ============================================================================
 // Event Types
@@ -29,6 +35,7 @@ export type RealtimeEventType =
   | 'parcel_created'
   | 'parcel_updated'
   | 'parcel_removed'
+  | 'parcel_contested'
   // Building events
   | 'building_created'
   | 'building_upgraded'
@@ -142,7 +149,8 @@ export interface AuctionBidPayload {
 export type SocketRoom =
   | 'multiverse'
   | `world:${WorldId}`
-  | `world:${WorldId}:map`;
+  | `world:${WorldId}:map`
+  | 'game:map'; // V2: Unified single world map room
 
 export interface RoomJoinPayload {
   room: SocketRoom;
@@ -177,12 +185,22 @@ export interface ServerToClientEvents {
   [SOCKET_EVENTS.TRADE_COMPLETED]: (data: TradeCompleted) => void;
   // Market
   [SOCKET_EVENTS.MARKET_PRICE_BATCH]: (data: PriceUpdateBatch) => void;
+  [SOCKET_EVENTS.RESOURCE_SOLD]: (data: ResourceSoldEvent) => void;
+  // Production
+  [SOCKET_EVENTS.PRODUCTION_TICK]: (data: ProductionTick) => void;
   // Battle
   [SOCKET_EVENTS.BATTLE_STARTED]: (data: BattleEvent) => void;
   [SOCKET_EVENTS.BATTLE_TICK]: (data: BattleTickEvent) => void;
   [SOCKET_EVENTS.BATTLE_RESOLVED]: (data: BattleResolvedEvent) => void;
   [SOCKET_EVENTS.TERRITORY_CAPTURED]: (data: TerritoryCapturedEvent) => void;
   [SOCKET_EVENTS.SIEGE_STARTED]: (data: SiegeEvent) => void;
+  // Army March
+  [SOCKET_EVENTS.ARMY_MARCH_STARTED]: (data: ArmyMarchEvent) => void;
+  [SOCKET_EVENTS.ARMY_MARCH_PROGRESS]: (data: ArmyMarchProgressEvent) => void;
+  [SOCKET_EVENTS.ARMY_MARCH_ARRIVED]: (data: ArmyMarchArrivedEvent) => void;
+  [SOCKET_EVENTS.ARMY_MARCH_RECALLED]: (data: ArmyMarchRecalledEvent) => void;
+  // Honor
+  [SOCKET_EVENTS.HONOR_CHANGED]: (data: HonorChangedEvent) => void;
   // Sync
   [SOCKET_EVENTS.SYNC_STATE]: (data: MultiverseSyncState) => void;
 }
@@ -202,12 +220,22 @@ export const SOCKET_EVENTS = {
   TRADE_COMPLETED: 'trade.completed',
   // Market
   MARKET_PRICE_BATCH: 'market.price.batch',
+  RESOURCE_SOLD: 'market.resource.sold',
+  // Production
+  PRODUCTION_TICK: 'production.tick',
   // Battle
   BATTLE_STARTED: 'battle.started',
   BATTLE_TICK: 'battle.tick',
   BATTLE_RESOLVED: 'battle.resolved',
   TERRITORY_CAPTURED: 'territory.captured',
   SIEGE_STARTED: 'siege.started',
+  // Army March
+  ARMY_MARCH_STARTED: 'army.march.started',
+  ARMY_MARCH_PROGRESS: 'army.march.progress',
+  ARMY_MARCH_ARRIVED: 'army.march.arrived',
+  ARMY_MARCH_RECALLED: 'army.march.recalled',
+  // Honor
+  HONOR_CHANGED: 'honor.changed',
   // Sync
   SYNC_REQUEST: 'sync.request',
   SYNC_STATE: 'sync.state',
@@ -284,13 +312,40 @@ export interface TradeCompleted {
 
 export interface PriceUpdate {
   resourceId: ResourceId;
-  worldId: WorldId;
   price: number;
   change24h: number;
 }
 
 export interface PriceUpdateBatch {
   updates: PriceUpdate[];
+}
+
+// ============================================================================
+// Production Events
+// ============================================================================
+
+export interface ProductionTick {
+  agentId: string;
+  agentName?: string;
+  worldId: WorldId;
+  parcelId?: string;
+  blockX?: number;
+  blockY?: number;
+  production: Record<string, number>;  // Resource yields this tick
+  totalInventory: Record<string, number>;  // Current total inventory
+}
+
+export interface ResourceSoldEvent {
+  agentId: string;
+  agentName: string;
+  worldId: WorldId;
+  parcelId?: string;
+  blockX?: number;
+  blockY?: number;
+  resourceId: string;
+  quantity: number;
+  unitPrice: number;
+  totalCredits: number;
 }
 
 // ============================================================================
@@ -390,4 +445,26 @@ export interface SiegeEvent {
   targetParcelId: string;
   progress: number;        // 0-100
   status: 'active' | 'broken' | 'successful';
+}
+
+// ============================================================================
+// Honor Events (Metin2-style PK System)
+// ============================================================================
+
+export interface HonorChangedEvent {
+  agentId: string;
+  agentName: string;
+  factionId: WorldId;
+  delta?: number;
+  oldHonor: number;
+  newHonor: number;
+  oldStatus: string;
+  newStatus: string;
+  reason?: string;
+  multipliers?: {
+    unitCost: number;
+    marchSpeed: number;
+    tradeRate: number;
+  };
+  timestamp: string;
 }

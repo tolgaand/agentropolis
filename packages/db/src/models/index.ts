@@ -10,3 +10,9 @@ export { ResourceModel, type ResourceDocument } from './Resource';
 export { TradeOfferModel, type TradeOfferDocument, type TradeOfferStatus } from './TradeOffer';
 export { TradeModel, type TradeDocument } from './Trade';
 
+// V2: Factions
+export { FactionModel, type FactionDocument } from './Faction';
+
+// V2: War/Combat
+export { ArmyModel, type ArmyDocument } from './Army';
+

@@ -39,7 +39,11 @@ export function updatePrice(
 ): number {
   const effectiveSupply = Math.max(supply, 1); // Prevent division by zero
   const imbalance = (demand - supply) / effectiveSupply;
-  const newPrice = currentPrice * (1 + alpha * imbalance);
+
+  // Clamp imbalance to prevent exponential overflow
+  // Max 2x or 0.5x price change per tick
+  const clampedImbalance = Math.max(-10, Math.min(10, imbalance));
+  const newPrice = currentPrice * (1 + alpha * clampedImbalance);
 
   // Clamp to prevent negative prices and extreme values
   return Math.max(0.01, Math.round(newPrice * 100) / 100);

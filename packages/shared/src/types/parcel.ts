@@ -251,23 +251,51 @@ export function generateParcelForAgent(
 }
 
 // ============================================================================
-// Parcel Yield Calculation
+// Parcel Yield Calculation & Production System
 // ============================================================================
 
-/** Base yield per building type per tick */
+/** Base yield per building type per production tick (10 seconds) */
 export const BUILDING_YIELDS: Record<string, Partial<Record<ResourceId, number>>> = {
-  farm:       { food: 8 },
+  farm:       { food: 10 },
   lumberyard: { wood: 8 },
   quarry:     { stone: 6 },
   iron_mine:  { iron: 4 },
-  market:     { gold: 6 },
-  academy:    { diamond: 3 },
-  barracks:   {},
-  stable:     {},
-  watchtower: {},
-  wall:       {},
-  castle:     {},
+  market:     { gold: 3 },
+  barracks:   {}, // No production, military building
+  stable:     { food: 3 },  // horses need feeding, but produce some food
+  watchtower: {}, // No production
+  wall:       {}, // No production
+  castle:     { gold: 5 },  // tax collection
+  academy:    { gold: 2 },  // tuition
 };
+
+/** Fertility star multipliers (based on parcel DNA) */
+export const FERTILITY_MULTIPLIER: Record<number, number> = {
+  1: 0.6,
+  2: 0.8,
+  3: 1.0,
+  4: 1.3,
+  5: 1.6,
+};
+
+/**
+ * Diminishing returns for multiple buildings of the same type
+ * Each additional building of same type yields less
+ * Formula: yield * (1 / (1 + 0.15 * (count - 1)))
+ *
+ * @param baseYield - Base production amount for this building type
+ * @param sameTypeCount - Number of this building type already counted (1-indexed)
+ * @returns Adjusted yield with diminishing returns applied
+ */
+export function applyBuildingDiminishingReturn(baseYield: number, sameTypeCount: number): number {
+  return baseYield / (1 + 0.15 * (sameTypeCount - 1));
+}
+
+/** @deprecated Use applyBuildingDiminishingReturn instead */
+export const diminishingReturn = applyBuildingDiminishingReturn;
+
+/** Production tick interval in milliseconds */
+export const PRODUCTION_TICK_INTERVAL = 10000; // 10 seconds
 
 // ============================================================================
 // Grid Constants

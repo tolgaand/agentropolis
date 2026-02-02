@@ -85,7 +85,11 @@ const WorldSchema = new Schema<WorldDocument>(
 
     // Identity
     modelPatterns: [{ type: String }],
-    currency: { type: CurrencySchema, required: true },
+    currency: {
+      type: CurrencySchema,
+      required: true,
+      default: { code: 'CRN', name: 'Crown', symbol: '♛' }
+    },
     specializations: [{ type: String }],
     aesthetic: { type: String },
 
