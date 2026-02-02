@@ -35,12 +35,25 @@ import {
 import { generateInitialCity, findNextParcelPosition, generateRoadsForParcel, SEED_PARCELS, getEmpireForBlock } from './placement';
 import type { SeedParcelConfig } from './placement';
 
+interface ContestedParcelState {
+  blockX: number;
+  blockY: number;
+  claimingWorldId: WorldId;
+  claimingAgentId: string;
+  originalWorldId: WorldId;
+  originalAgentId: string;
+  contestedSince: Date;
+  captureProgress: number; // 0-100
+}
+
 interface CityState {
   map: MapData;
   spectatorCount: number;
   lastUpdate: Date;
   // Track occupied blocks: Set of "blockX,blockY" strings
   occupiedBlocks: Set<string>;
+  // Track contested parcels (capture in progress)
+  contestedParcels: Map<string, ContestedParcelState>;
 }
 
 class MapStateService {
@@ -66,12 +79,13 @@ class MapStateService {
       spectatorCount: 0,
       lastUpdate: new Date(),
       occupiedBlocks,
+      contestedParcels: new Map(),
     };
   }
 
   /**
    * Seed empire parcels — pre-populate the map with founder settlements.
-   * Each empire gets 3 parcels in its sector (Ring 1-2).
+   * Each empire gets 1 founder parcel in its sector.
    * These are placed at explicit block positions, not via ring expansion.
    */
   private seedEmpireParcels(): void {
@@ -223,6 +237,14 @@ class MapStateService {
       parcels: filteredParcels,
       objects: filteredObjects,
     };
+  }
+
+  /**
+   * Get full map data across all worlds (V2: unified single world)
+   * Returns all parcels and objects without worldId filtering
+   */
+  getFullMapData(): MapData {
+    return this.state.map;
   }
 
   /**
@@ -382,6 +404,9 @@ class MapStateService {
     const objects: MapObject[] = [];
     const { layout, bounds, id, agentId } = parcel;
 
+    // Detect if this is a seed/founder parcel (starts with "seed_")
+    const isSystemOwned = agentId.startsWith('seed_');
+
     // Main building
     objects.push({
       id: `${id}_main`,
@@ -394,6 +419,7 @@ class MapStateService {
       ownerId: agentId,
       parcelId: id,
       level: layout.mainBuilding.level,
+      isSystemOwned,
     });
 
     // Secondary buildings
@@ -409,6 +435,7 @@ class MapStateService {
         ownerId: agentId,
         parcelId: id,
         level: building.level,
+        isSystemOwned,
       });
     });
 
@@ -458,10 +485,17 @@ class MapStateService {
   }
 
   /**
-   * Get parcel by agent ID
+   * Get parcel by agent ID (returns first match)
    */
   getParcelByAgent(agentId: string): MapParcel | undefined {
     return this.state.map.parcels.find(p => p.agentId === agentId);
+  }
+
+  /**
+   * Get all parcels owned by an agent
+   */
+  getParcelsForAgent(agentId: string): MapParcel[] {
+    return this.state.map.parcels.filter(p => p.agentId === agentId);
   }
 
   /**
@@ -517,6 +551,119 @@ class MapStateService {
    */
   reset(): void {
     this.state = this.initializeCity();
+  }
+
+  /**
+   * Set a parcel as contested (capture in progress)
+   * Called when an attacker wins a battle at a parcel position
+   */
+  setParcelContested(
+    blockX: number,
+    blockY: number,
+    claimingWorldId: WorldId,
+    claimingAgentId: string
+  ): boolean {
+    const parcel = this.getParcelByBlock(blockX, blockY);
+    if (!parcel) {
+      console.warn(`[MapState] Cannot contest parcel at (${blockX},${blockY}) - no parcel found`);
+      return false;
+    }
+
+    const blockKey = `${blockX},${blockY}`;
+
+    // Don't allow contesting if already contested by the same claimer
+    const existing = this.state.contestedParcels.get(blockKey);
+    if (existing && existing.claimingWorldId === claimingWorldId) {
+      console.log(`[MapState] Parcel at (${blockX},${blockY}) already contested by ${claimingWorldId}`);
+      return false;
+    }
+
+    const contestedState: ContestedParcelState = {
+      blockX,
+      blockY,
+      claimingWorldId,
+      claimingAgentId,
+      originalWorldId: parcel.worldId as WorldId,
+      originalAgentId: parcel.agentId,
+      contestedSince: new Date(),
+      captureProgress: 0,
+    };
+
+    this.state.contestedParcels.set(blockKey, contestedState);
+    console.log(`[MapState] Parcel at (${blockX},${blockY}) contested by ${claimingWorldId} (was ${parcel.worldId})`);
+    return true;
+  }
+
+  /**
+   * Clear contested state for a parcel
+   * Called when a defender arrives and cancels the capture
+   */
+  clearParcelContested(blockX: number, blockY: number): boolean {
+    const blockKey = `${blockX},${blockY}`;
+    const existed = this.state.contestedParcels.delete(blockKey);
+    if (existed) {
+      console.log(`[MapState] Cleared contested state for parcel at (${blockX},${blockY})`);
+    }
+    return existed;
+  }
+
+  /**
+   * Transfer parcel ownership
+   * Called when a capture timer completes successfully
+   */
+  transferParcelOwnership(
+    blockX: number,
+    blockY: number,
+    newAgentId: string,
+    newWorldId: WorldId
+  ): MapParcel | null {
+    const parcel = this.getParcelByBlock(blockX, blockY);
+    if (!parcel) {
+      console.error(`[MapState] Cannot transfer parcel at (${blockX},${blockY}) - not found`);
+      return null;
+    }
+
+    const previousWorldId = parcel.worldId;
+    const previousAgentId = parcel.agentId;
+
+    // Update parcel ownership
+    parcel.worldId = newWorldId;
+    parcel.agentId = newAgentId;
+    parcel.agentName = `Captured Territory`; // Mark as captured
+
+    // Update all objects in this parcel
+    for (const obj of this.state.map.objects) {
+      if (obj.parcelId === parcel.id) {
+        obj.ownerId = newAgentId;
+      }
+    }
+
+    // Clear contested state
+    const blockKey = `${blockX},${blockY}`;
+    this.state.contestedParcels.delete(blockKey);
+
+    this.state.lastUpdate = new Date();
+
+    console.log(
+      `[MapState] Transferred parcel (${blockX},${blockY}) from ${previousWorldId}:${previousAgentId} to ${newWorldId}:${newAgentId}`
+    );
+
+    return parcel;
+  }
+
+  /**
+   * Get contested parcel state
+   */
+  getContestedParcel(blockX: number, blockY: number): ContestedParcelState | undefined {
+    const blockKey = `${blockX},${blockY}`;
+    return this.state.contestedParcels.get(blockKey);
+  }
+
+  /**
+   * Get all contested parcels
+   */
+  getAllContestedParcels(): ContestedParcelState[] {
+    return Array.from(this.state.contestedParcels.values());
   }
 
   /**

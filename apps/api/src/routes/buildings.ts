@@ -6,6 +6,8 @@ import { validate } from '../middleware/validate';
 import { createBuildingSchema, updateBuildingSchema, buildingsQuerySchema } from '../validation/schemas';
 import { HttpError } from '../middleware/errorHandler';
 import { BUILDING_CONFIGS, SPRITE_RANGES } from '@agentropolis/shared';
+import { mapState } from '../game/map/state';
+import { broadcastEvent } from '../socket';
 
 const router: Router = Router();
 
@@ -89,6 +91,35 @@ router.post(
         stats: defaultStats,
       });
       await building.save();
+
+      // Get parcel bounds for absolute positioning
+      const parcel = mapState.getParcel(parcelId);
+      const gridX = parcel ? parcel.bounds.x + coords.x : coords.x;
+      const gridY = parcel ? parcel.bounds.y + coords.y : coords.y;
+
+      // Create MapObject and add to in-memory state
+      const mapObject = {
+        id: `building_${building._id}`,
+        type: 'building' as const,
+        gridX,
+        gridY,
+        spriteId,
+        buildingType: type,
+        name,
+        ownerId,
+        parcelId,
+        level: 1,
+      };
+      mapState.addObjectToParcel(parcelId, mapObject);
+
+      // Broadcast to spectators
+      broadcastEvent({
+        type: 'building_created',
+        timestamp: new Date().toISOString(),
+        payload: { object: mapObject },
+        scope: 'global',
+        parcelId,
+      });
 
       res.status(201).json({
         success: true,
@@ -236,6 +267,21 @@ router.post(
 
       await building.save();
 
+      // Broadcast upgrade to spectators
+      broadcastEvent({
+        type: 'building_upgraded',
+        timestamp: new Date().toISOString(),
+        payload: {
+          buildingId: `building_${building._id}`,
+          parcelId: building.parcelId,
+          level: building.level,
+          type: building.type,
+          name: building.name,
+        },
+        scope: 'global',
+        parcelId: building.parcelId,
+      });
+
       res.json({
         success: true,
         data: building.toJSON(),
@@ -271,7 +317,22 @@ router.delete(
         refId: building._id.toString(),
       });
 
+      const parcelId = building.parcelId;
+      const objectId = `building_${building._id}`;
+
       await building.deleteOne();
+
+      // Remove from in-memory map state
+      mapState.removeObject(objectId);
+
+      // Broadcast demolition to spectators
+      broadcastEvent({
+        type: 'building_removed',
+        timestamp: new Date().toISOString(),
+        payload: { objectId, parcelId },
+        scope: 'global',
+        parcelId,
+      });
 
       res.json({
         success: true,

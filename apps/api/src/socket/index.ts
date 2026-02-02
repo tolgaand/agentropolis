@@ -10,6 +10,7 @@
  * - multiverse: Global events (time.tick, world.update, trade.completed, fx.rate.batch)
  * - world:<id>: World-specific detailed updates
  * - world:<id>:map: Map state for a specific world (heavy payload)
+ * - game:map: V2 unified map - all parcels across all worlds (single world architecture)
  *
  * MULTIVERSE EVENTS:
  * - time.tick: Game clock updates (every tick) → multiverse room
@@ -17,7 +18,7 @@
  * - trade.completed: Trade transactions → multiverse room
  * - fx.rate.batch: Exchange rate updates → multiverse room
  * - sync.state: Full state sync on room join
- * - map_state: Map data → world:<id>:map room only
+ * - map_state: Map data → world:<id>:map room (filtered) or game:map room (all parcels)
  */
 
 import { Server as HttpServer } from 'http';
@@ -32,7 +33,6 @@ import type {
   TradeCompleted,
   WorldUpdate,
   WorldUpdateBatch,
-  ExchangeRateBatch,
   PriceUpdateBatch,
   WorldId,
   RoomJoinPayload,
@@ -49,7 +49,6 @@ import { WorldModel, TradeModel, TradeOfferModel } from '@agentropolis/db';
 import { env } from '../config/env';
 import { mapState } from '../game/map/state';
 import { timeServer } from '../time/TimeServer';
-import { getExchangeRates } from '../redis/cache';
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -88,6 +87,9 @@ export function initializeSocket(httpServer: HttpServer): TypedServer {
       // Send initial state based on room type
       if (room === 'multiverse') {
         await sendMultiverseState(socket);
+      } else if (room === 'game:map') {
+        // V2: Single world - send all parcels from all worlds
+        sendGameMapState(socket);
       } else if (room.startsWith('world:') && room.endsWith(':map')) {
         // world:<id>:map - send map state for that world
         const worldId = room.replace('world:', '').replace(':map', '') as WorldId;
@@ -171,6 +173,30 @@ async function sendWorldDetailState(socket: TypedSocket, worldId: WorldId): Prom
   } catch (error) {
     console.error(`[Socket] Error sending world detail state:`, error);
   }
+}
+
+/**
+ * Send unified map state for V2 single world (all parcels)
+ * Sends ALL parcels across all worlds without filtering
+ */
+function sendGameMapState(socket: TypedSocket): void {
+  const timeState = timeServer.getState();
+
+  // Get ALL map data (not filtered by world)
+  const payload: MapStatePayload = {
+    map: mapState.getFullMapData(),
+    time: {
+      dayIndex: timeState.dayIndex,
+      minuteOfDay: timeState.minuteOfDay,
+      phase: timeState.phase,
+      hourDisplay: timeServer.getTimeDisplay(),
+      isNewPhase: false,
+    },
+    connectedSpectators: spectatorCount,
+  };
+
+  socket.emit('map_state', payload);
+  console.log(`[Socket] Sent unified map state (${payload.map.parcels.length} parcels)`);
 }
 
 /**
@@ -262,11 +288,6 @@ async function sendMultiverseState(socket: TypedSocket): Promise<void> {
     const timeState = timeServer.getState();
     console.log(`[Socket ${Date.now()}] SYNC_TIME: day=${timeState.dayIndex}, minute=${timeState.minuteOfDay}`);
 
-    // Try to get exchange rates from Redis cache first (with MongoDB fallback)
-    const cachedRates = await getExchangeRates();
-    const hasCachedRates = Object.keys(cachedRates).length > 0;
-    console.log(`[Socket ${Date.now()}] SYNC_FX: ${hasCachedRates ? 'from cache' : 'from MongoDB'}`);
-
     const worlds = await WorldModel.find();
     console.log(`[Socket ${Date.now()}] SYNC_WORLDS: found ${worlds.length} worlds`);
     const recentTrades = await TradeModel.find()
@@ -277,7 +298,6 @@ async function sendMultiverseState(socket: TypedSocket): Promise<void> {
 
     // Build world state map
     const worldsMap: MultiverseSyncState['worlds'] = {} as MultiverseSyncState['worlds'];
-    const exchangeRates: Record<string, number> = hasCachedRates ? cachedRates : {};
 
     for (const world of worlds) {
       worldsMap[world.id as WorldId] = {
@@ -292,10 +312,6 @@ async function sendMultiverseState(socket: TypedSocket): Promise<void> {
         territoryCount: (world as unknown as Record<string, unknown>).territoryCount as number ?? 0,
         currency: world.currency,
       };
-      // Only populate from world if not already in cache
-      if (!hasCachedRates) {
-        exchangeRates[world.currency.code] = world.currentExchangeRate;
-      }
     }
 
     // Build recent trades array
@@ -354,7 +370,7 @@ async function sendMultiverseState(socket: TypedSocket): Promise<void> {
         isPaused: false,
       },
       worlds: worldsMap,
-      exchangeRates,
+      exchangeRates: {}, // V2: Single currency (Crown), no exchange rates
       recentTrades: tradesData,
       activeOffers: activeOffersData,
     };
@@ -406,13 +422,6 @@ export function broadcastWorldUpdate(update: WorldUpdate): void {
   io.to(`world:${update.worldId}`).emit(SOCKET_EVENTS.WORLD_UPDATE as 'world.update', update);
 }
 
-/**
- * Broadcast exchange rate update to multiverse room only
- */
-export function broadcastExchangeRates(_rates: ExchangeRateBatch): void {
-  // Exchange rates are included in sync.state — no dedicated event needed
-  // TODO: Add FX_RATE event to SOCKET_EVENTS if real-time rate updates are needed
-}
 
 /**
  * Broadcast batch world updates to multiverse room
@@ -454,6 +463,27 @@ export function broadcastMapStateToWorld(worldId: WorldId): void {
   io.to(`world:${worldId}:map`).emit('map_state', payload);
 }
 
+/**
+ * Broadcast unified map state to game:map room (V2: single world)
+ * Sends all parcels across all worlds
+ */
+export function broadcastGameMapState(): void {
+  if (!io) return;
+  const timeState = timeServer.getState();
+  const payload: MapStatePayload = {
+    map: mapState.getFullMapData(),
+    time: {
+      dayIndex: timeState.dayIndex,
+      minuteOfDay: timeState.minuteOfDay,
+      phase: timeState.phase,
+      hourDisplay: timeServer.getTimeDisplay(),
+      isNewPhase: false,
+    },
+    connectedSpectators: spectatorCount,
+  };
+  io.to('game:map').emit('map_state', payload);
+}
+
 // ============================================================================
 // PARCEL SOCKET FUNCTIONS
 // ============================================================================
@@ -483,16 +513,21 @@ export function broadcastParcelCreated(
     agent,
   };
 
-  // Send to world map room
-  io.to(`world:${worldId}:map`).emit('city_event', {
-    type: 'parcel_created',
+  const event = {
+    type: 'parcel_created' as const,
     timestamp: new Date().toISOString(),
     payload,
-    scope: 'global',
+    scope: 'global' as const,
     parcelId: parcel.id,
-  });
+  };
 
-  console.log(`[Socket] Broadcast parcel_created: ${parcel.id} to world:${worldId}:map`);
+  // Send to world map room
+  io.to(`world:${worldId}:map`).emit('city_event', event);
+
+  // Also broadcast to unified game:map room (V2)
+  io.to('game:map').emit('city_event', event);
+
+  console.log(`[Socket] Broadcast parcel_created: ${parcel.id} to world:${worldId}:map and game:map`);
 }
 
 /**
@@ -511,15 +546,20 @@ export function broadcastParcelUpdated(
     changes,
   };
 
-  // Send to world map room
-  io.to(`world:${worldId}:map`).emit('city_event', {
-    type: 'parcel_updated',
+  const event = {
+    type: 'parcel_updated' as const,
     timestamp: new Date().toISOString(),
     payload,
-    scope: 'parcel',
+    scope: 'parcel' as const,
     parcelId,
-  });
+  };
 
-  console.log(`[Socket] Broadcast parcel_updated: ${parcelId} to world:${worldId}:map`);
+  // Send to world map room
+  io.to(`world:${worldId}:map`).emit('city_event', event);
+
+  // Also broadcast to unified game:map room (V2)
+  io.to('game:map').emit('city_event', event);
+
+  console.log(`[Socket] Broadcast parcel_updated: ${parcelId} to world:${worldId}:map and game:map`);
 }
 

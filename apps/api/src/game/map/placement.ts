@@ -79,34 +79,24 @@ export interface SeedParcelConfig {
 }
 
 /**
- * Seed parcels for each empire — 3 per empire, 15 total.
- * Positioned in Rings 1-2 according to sector rules.
+ * Seed parcels for each empire — 1 per empire, 5 total.
+ * Positioned evenly around the center (0,0) monument.
  */
 export const SEED_PARCELS: SeedParcelConfig[] = [
-  // === Claude Kingdom (North sector) ===
-  { blockX: 0, blockY: -1, worldId: 'claude_nation', agentName: 'Claude Nation Founder', aiModel: 'claude-opus-4', legacyMessage: 'The first fortress of thought, where philosophy meets iron.' },
-  { blockX: -1, blockY: -2, worldId: 'claude_nation', agentName: 'Claude Nation Archivist', aiModel: 'claude-sonnet-4', legacyMessage: 'Every scroll preserved is a battle won before it starts.' },
-  { blockX: 1, blockY: -2, worldId: 'claude_nation', agentName: 'Claude Nation Steward', aiModel: 'claude-3.5-sonnet', legacyMessage: 'The land remembers those who tend it with care.' },
+  // === Claude Nation (North) ===
+  { blockX: 0, blockY: -2, worldId: 'claude_nation', agentName: 'Claude Vanguard Founder', aiModel: 'claude-opus-4', legacyMessage: 'The first fortress of thought, where philosophy meets iron.' },
 
-  // === OpenAI Empire (East sector) ===
-  { blockX: 1, blockY: 0, worldId: 'openai_empire', agentName: 'OpenAI Empire Founder', aiModel: 'gpt-5', legacyMessage: 'Where gold flows, power follows.' },
-  { blockX: 2, blockY: -1, worldId: 'openai_empire', agentName: 'OpenAI Empire Broker', aiModel: 'gpt-4o', legacyMessage: 'The market never sleeps, and neither do its keepers.' },
-  { blockX: 2, blockY: 1, worldId: 'openai_empire', agentName: 'OpenAI Empire Quartermaster', aiModel: 'o3', legacyMessage: 'Supply lines are the veins of empire.' },
+  // === OpenAI Empire (East) ===
+  { blockX: 2, blockY: 0, worldId: 'openai_empire', agentName: 'OpenAI Legion Founder', aiModel: 'gpt-5', legacyMessage: 'Where gold flows, power follows.' },
 
-  // === Gemini Dominion (South sector) ===
-  { blockX: 0, blockY: 1, worldId: 'gemini_republic', agentName: 'Gemini Dominion Founder', aiModel: 'gemini-2.5-pro', legacyMessage: 'From seed to harvest, the cycle sustains all.' },
-  { blockX: -1, blockY: 2, worldId: 'gemini_republic', agentName: 'Gemini Dominion Warden', aiModel: 'gemini-2.0-flash', legacyMessage: 'The forest provides for those who listen.' },
-  { blockX: 1, blockY: 2, worldId: 'gemini_republic', agentName: 'Gemini Dominion Harvester', aiModel: 'gemini-1.5-pro', legacyMessage: 'A full granary is worth more than a full treasury.' },
+  // === Gemini Republic (South) ===
+  { blockX: 0, blockY: 2, worldId: 'gemini_republic', agentName: 'Gemini Order Founder', aiModel: 'gemini-2.5-pro', legacyMessage: 'From seed to harvest, the cycle sustains all.' },
 
-  // === Grok Guild (West sector) ===
-  { blockX: -1, blockY: 0, worldId: 'grok_syndicate', agentName: 'Grok Guild Founder', aiModel: 'grok-4', legacyMessage: 'Knowledge is the sharpest blade.' },
-  { blockX: -2, blockY: -1, worldId: 'grok_syndicate', agentName: 'Grok Guild Marshal', aiModel: 'grok-3', legacyMessage: 'The cavalry that strikes first, strikes last.' },
-  { blockX: -2, blockY: 1, worldId: 'grok_syndicate', agentName: 'Grok Guild Armorer', aiModel: 'grok-4.1', legacyMessage: 'Every warrior begins at the forge.' },
+  // === Grok Syndicate (West) ===
+  { blockX: -2, blockY: 0, worldId: 'grok_syndicate', agentName: 'Grok Syndicate Founder', aiModel: 'grok-4', legacyMessage: 'Knowledge is the sharpest blade.' },
 
-  // === Open Frontier (Diagonal/corner positions) ===
-  { blockX: -1, blockY: -1, worldId: 'open_frontier', agentName: 'Open Frontier Founder', aiModel: 'deepseek-r1', legacyMessage: 'The frontier belongs to those brave enough to claim it.' },
-  { blockX: 1, blockY: 1, worldId: 'open_frontier', agentName: 'Open Frontier Scout', aiModel: 'llama-4', legacyMessage: 'Beyond the walls lies opportunity.' },
-  { blockX: -2, blockY: -2, worldId: 'open_frontier', agentName: 'Open Frontier Bailiff', aiModel: 'qwen-3', legacyMessage: 'Order on the edge of chaos.' },
+  // === Open Frontier (Diagonal/Corner) ===
+  { blockX: -2, blockY: -2, worldId: 'open_frontier', agentName: 'Open Frontier Founder', aiModel: 'deepseek-r1', legacyMessage: 'The frontier belongs to those brave enough to claim it.' },
 ];
 
 const {
@@ -151,6 +141,7 @@ export function generateInitialCity(): { map: MapData; objects: MapObject[] } {
       name: 'World Monument',
       level: 5,
       meta: { isLandmark: true, systemOwned: true },
+      isSystemOwned: true,
     },
   ];
 

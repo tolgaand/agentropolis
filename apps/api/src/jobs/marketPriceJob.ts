@@ -1,252 +1,145 @@
 /**
  * Market Price Job
  *
- * Computes resource price changes based on supply/demand simulation
+ * Computes global resource price changes based on supply/demand simulation
  * using scientifically-grounded economic formulas.
  *
- * Each world has DIFFERENT prices based on:
- * - Local supply (world affinity/production)
- * - Local demand (population, prosperity)
- * - Trade balance effects
+ * V2: Single world with Crown (CRN) currency
+ * - Global prices (not per-world)
+ * - Supply/demand based on total production and consumption
  * - Random volatility
  *
- * Arbitrage opportunities are flagged when price gaps exceed threshold.
- *
  * Redis Keys:
- * - price:{resourceId}:{worldId} = { price, change24h, updatedAt } (TTL: 10s)
+ * - price:{resourceId} = { price, change24h, updatedAt } (TTL: 10s)
  */
 
-import { ResourceModel, WorldModel, TradeModel } from '@agentropolis/db';
-import type { WorldId, ResourceId, PriceUpdate, PriceUpdateBatch } from '@agentropolis/shared';
-import { WORLD_IDS } from '@agentropolis/shared';
+import { ResourceModel } from '@agentropolis/db';
+import type { ResourceId, PriceUpdate, PriceUpdateBatch } from '@agentropolis/shared';
 import { broadcastMarketPrices } from '../socket';
 import { cachePrices } from '../redis/cache';
-import {
-  updatePrice,
-  calculateLocalPrice,
-  calculateDemandBias,
-  calculateSupplyBias,
-  calculateInflation,
-  applyInflation,
-  findBestArbitrage,
-  ECONOMY_CONSTANTS,
-} from '../services/economyEngine';
+import { safeGet } from '../redis';
 
 const JOB_NAME = '[MarketPriceJob]';
 
-// Store previous prices and money supply for calculations
-const previousPrices: Map<string, number> = new Map();
-const previousMoneySupply: Map<WorldId, number> = new Map();
+// Store previous prices for calculations
+const previousPrices: Map<ResourceId, number> = new Map();
 
-// Simulated supply and demand per world/resource
-// In a real system, these would be tracked from actual trades
-const worldSupply: Map<string, number> = new Map();
-const worldDemand: Map<string, number> = new Map();
+// Demand constant calibrates price sensitivity to supply
+// Higher value = less price movement per unit of supply
+const DEMAND_CONSTANT = 100;
+
+// Price floor/ceiling as multipliers of base price
+const PRICE_FLOOR_MULTIPLIER = 0.1;  // 10% of base
+const PRICE_CEILING_MULTIPLIER = 3.0; // 300% of base
+
+// Random noise range for market feel
+const RANDOM_NOISE_RANGE = 0.03; // ±3%
+
 
 /**
- * Initialize or get simulated supply/demand values
+ * Get actual production supply from Redis
+ * Returns total amount produced in the last production cycle
  */
-function getSupplyDemand(worldId: WorldId, resourceId: ResourceId, affinity: number): { supply: number; demand: number } {
-  const key = `${worldId}:${resourceId}`;
+async function getProductionSupply(resourceId: ResourceId): Promise<number | null> {
+  const key = `resource:supply:${resourceId}`;
+  const value = await safeGet(key);
 
-  // Initialize if not exists
-  if (!worldSupply.has(key)) {
-    // Higher affinity = more supply
-    const baseSupply = 100 * affinity;
-    // Base demand affected by resource tier (higher tier = more valuable = more demand)
-    const baseDemand = 80 + Math.random() * 40;
+  if (value === null) return null;
 
-    worldSupply.set(key, baseSupply);
-    worldDemand.set(key, baseDemand);
-  }
-
-  // Add small random fluctuation each tick
-  const currentSupply = worldSupply.get(key)!;
-  const currentDemand = worldDemand.get(key)!;
-
-  // Random walk for supply/demand (mean reverting)
-  const supplyChange = (Math.random() - 0.5) * 10 - (currentSupply - 100 * affinity) * 0.01;
-  const demandChange = (Math.random() - 0.5) * 10 - (currentDemand - 100) * 0.01;
-
-  const newSupply = Math.max(1, currentSupply + supplyChange);
-  const newDemand = Math.max(1, currentDemand + demandChange);
-
-  worldSupply.set(key, newSupply);
-  worldDemand.set(key, newDemand);
-
-  return { supply: newSupply, demand: newDemand };
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? null : parsed;
 }
 
 /**
- * Get recent trade volume for a world to estimate money supply
- */
-async function getWorldTradeVolume(worldId: WorldId): Promise<number> {
-  try {
-    // Get trades in the last 24 hours (simulated as last 100 trades)
-    const recentTrades = await TradeModel.find({
-      $or: [{ sellerWorldId: worldId }, { buyerWorldId: worldId }],
-    })
-      .sort({ createdAt: -1 })
-      .limit(100);
-
-    let volume = 0;
-    for (const trade of recentTrades) {
-      if (trade.sellerWorldId === worldId) {
-        // Exports bring money in
-        volume += trade.totalPrice;
-      } else {
-        // Imports send money out
-        volume -= trade.buyerPaid;
-      }
-    }
-
-    // Return absolute volume for money supply calculation
-    return Math.abs(volume) + 10000; // Base money supply of 10000
-  } catch {
-    return 10000; // Fallback
-  }
-}
-
-/**
- * Calculate price for a resource in a world using economic formulas
+ * Calculate global price for a resource based on actual production supply
+ * Formula: price = basePrice * (demandConstant / (demandConstant + totalSupply))
+ *
+ * - More production = lower price
+ * - Less production = higher price
+ * - No production data = drift slowly toward base price
  */
 async function calculateResourcePrice(
   resourceId: ResourceId,
-  baseValue: number,
-  volatility: number,
-  worldId: WorldId,
-  worldAffinity: number,
-  worldProsperity: number,
-  worldPopulation: number
+  baseValue: number
 ): Promise<number> {
-  const priceKey = `${worldId}:${resourceId}`;
-  const prevPrice = previousPrices.get(priceKey) || baseValue;
+  const prevPrice = previousPrices.get(resourceId) || baseValue;
 
-  // Get supply/demand for this world/resource
-  const { supply, demand } = getSupplyDemand(worldId, resourceId, worldAffinity);
+  // Get actual production supply from Redis
+  const totalSupply = await getProductionSupply(resourceId);
 
-  // Step 1: Apply supply-demand price update
-  let price = updatePrice(prevPrice, demand, supply, ECONOMY_CONSTANTS.PRICE_ALPHA);
+  let price: number;
 
-  // Step 2: Calculate local price adjustments
-  const demandBias = calculateDemandBias(worldPopulation, worldProsperity);
-  const supplyBias = calculateSupplyBias(worldAffinity);
-  price = calculateLocalPrice(price, demandBias, supplyBias, ECONOMY_CONSTANTS.BASE_TARIFF);
+  if (totalSupply !== null && totalSupply > 0) {
+    // Calculate price based on actual supply
+    // More supply = lower price (inverse relationship)
+    price = baseValue * (DEMAND_CONSTANT / (DEMAND_CONSTANT + totalSupply));
+  } else {
+    // No production data - drift slowly toward base price
+    // This handles new resources or periods of no production
+    const drift = 0.05; // 5% drift per tick toward base
+    price = prevPrice + (baseValue - prevPrice) * drift;
+  }
 
-  // Step 3: Apply inflation if money supply changed
-  const currentMoney = await getWorldTradeVolume(worldId);
-  const prevMoney = previousMoneySupply.get(worldId) || currentMoney;
-  const inflation = calculateInflation(currentMoney, prevMoney, ECONOMY_CONSTANTS.INFLATION_BETA);
-  price = applyInflation(price, inflation);
-  previousMoneySupply.set(worldId, currentMoney);
+  // Add small random noise for market feel
+  const noise = 1 + (Math.random() - 0.5) * 2 * RANDOM_NOISE_RANGE;
+  price = price * noise;
 
-  // Step 4: Add random volatility
-  const randomDrift = 1 + (Math.random() - 0.5) * volatility * 0.1;
-  price = price * randomDrift;
+  // Apply floor and ceiling
+  const floor = baseValue * PRICE_FLOOR_MULTIPLIER;
+  const ceiling = baseValue * PRICE_CEILING_MULTIPLIER;
+  price = Math.max(floor, Math.min(ceiling, price));
 
-  // Round and clamp
-  price = Math.max(0.01, Math.round(price * 100) / 100);
+  // Round to 2 decimal places
+  price = Math.round(price * 100) / 100;
 
   return price;
 }
 
 /**
  * Run the market price update job
+ * Prices are now based on actual production supply from resourceProductionJob
  */
 export async function runMarketPriceJob(): Promise<void> {
   try {
     const resources = await ResourceModel.find();
-    const worlds = await WorldModel.find();
     const updates: PriceUpdate[] = [];
 
-    // Build world data maps
-    const worldData: Map<WorldId, { prosperity: number; population: number }> = new Map();
-    for (const world of worlds) {
-      worldData.set(world.id as WorldId, {
-        prosperity: world.prosperityIndex,
-        population: world.population,
-      });
-    }
-
-    // Process each resource
+    // Process each resource (single global price)
     for (const resource of resources) {
       const resourceId = resource.id as ResourceId;
       const baseValue = resource.baseValue;
-      const volatility = resource.volatility || 0.15;
 
-      // Get world affinity map
-      const affinityMap =
-        resource.worldAffinity instanceof Map
-          ? Object.fromEntries(resource.worldAffinity)
-          : resource.worldAffinity || {};
+      // Calculate new price based on actual production supply
+      const newPrice = await calculateResourcePrice(resourceId, baseValue);
 
-      // Track prices for arbitrage detection
-      const resourcePrices: Map<WorldId, number> = new Map();
+      // Get previous price for change calculation
+      const prevPrice = previousPrices.get(resourceId) || newPrice;
 
-      // Calculate price for each world
-      for (const worldId of WORLD_IDS) {
-        const data = worldData.get(worldId) || { prosperity: 50, population: 0 };
-        const affinity = (affinityMap as Record<string, number>)[worldId] || 1.0;
+      // Calculate 24h change (simulated as change since last tick)
+      const change24h =
+        prevPrice > 0 ? Math.round(((newPrice - prevPrice) / prevPrice) * 10000) / 100 : 0;
 
-        // Calculate new price using economic formulas
-        const newPrice = await calculateResourcePrice(
-          resourceId,
-          baseValue,
-          volatility,
-          worldId,
-          affinity,
-          data.prosperity,
-          data.population
-        );
+      // Store new price for next iteration
+      previousPrices.set(resourceId, newPrice);
 
-        // Get previous price for change calculation
-        const priceKey = `${worldId}:${resourceId}`;
-        const prevPrice = previousPrices.get(priceKey) || newPrice;
-
-        // Calculate 24h change (simulated as change since last tick)
-        const change24h =
-          prevPrice > 0 ? Math.round(((newPrice - prevPrice) / prevPrice) * 10000) / 100 : 0;
-
-        // Store new price for next iteration
-        previousPrices.set(priceKey, newPrice);
-        resourcePrices.set(worldId, newPrice);
-
-        updates.push({
-          resourceId,
-          worldId,
-          price: newPrice,
-          change24h,
-        });
-      }
-
-      // Check for arbitrage opportunities
-      const arbitrage = findBestArbitrage(
-        resourcePrices,
-        ECONOMY_CONSTANTS.TRANSPORT_FEE * baseValue,
-        ECONOMY_CONSTANTS.TRADE_FEE
-      );
-
-      if (arbitrage && arbitrage.profitMargin > ECONOMY_CONSTANTS.MIN_ARBITRAGE_MARGIN) {
-        console.log(
-          `${JOB_NAME} Arbitrage opportunity: ${resourceId} - ` +
-            `Buy at ${arbitrage.buyWorldId} (${arbitrage.buyPrice.toFixed(2)}) → ` +
-            `Sell at ${arbitrage.sellWorldId} (${arbitrage.sellPrice.toFixed(2)}) = ` +
-            `${(arbitrage.profitMargin * 100).toFixed(1)}% profit`
-        );
-      }
+      updates.push({
+        resourceId,
+        price: newPrice,
+        change24h,
+      });
     }
 
     if (updates.length > 0) {
       // Write to Redis cache (with TTL: 10 seconds)
       const cached = await cachePrices(updates);
       if (cached) {
-        console.log(`${JOB_NAME} Cached ${updates.length} prices to Redis`);
+        console.log(`${JOB_NAME} Cached ${updates.length} global prices to Redis (supply-driven)`);
       }
 
       // Broadcast to connected clients
       const batch: PriceUpdateBatch = { updates };
       broadcastMarketPrices(batch);
-      console.log(`${JOB_NAME} Broadcast ${updates.length} price updates`);
+      console.log(`${JOB_NAME} Broadcast ${updates.length} supply-driven price updates`);
     }
   } catch (error) {
     console.error(`${JOB_NAME} Error:`, error);

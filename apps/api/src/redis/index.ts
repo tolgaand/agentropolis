@@ -2,7 +2,6 @@
  * Redis Client Infrastructure
  *
  * Provides a singleton Redis client for caching hot data:
- * - Exchange rates (fx:*)
  * - Resource prices (price:*)
  * - World stats (world:*)
  *
@@ -122,12 +121,8 @@ export async function closeRedis(): Promise<void> {
  * Redis key prefixes following the schema in REDIS_ARCHITECTURE.md
  */
 export const REDIS_KEYS = {
-  // Exchange rates
-  fxRate: (currencyCode: string) => `fx:${currencyCode}`,
-  fxMatrix: () => 'fx:matrix',
-
-  // Prices
-  price: (resourceId: string, worldId: string) => `price:${resourceId}:${worldId}`,
+  // Prices (global for V2 single world)
+  price: (resourceId: string) => `price:${resourceId}`,
   priceIndex: () => 'price:index',
 
   // World stats
@@ -144,7 +139,6 @@ export const REDIS_KEYS = {
 // ============================================================================
 
 export const TTL = {
-  FX_RATE: 5,         // Exchange rates: 5 seconds
   PRICE: 10,          // Resource prices: 10 seconds
   WORLD_STATS: 30,    // World stats: 30 seconds
   LEADERBOARD: 120,   // Leaderboards: 2 minutes

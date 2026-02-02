@@ -7,6 +7,8 @@ import timeRouter from './time';
 import worldsRouter from './worlds';
 import tradeRouter from './trade';
 import marketRouter from './market';
+import factionsRouter from './factions';
+import { armyRouter } from './army';
 
 const router: RouterType = Router();
 
@@ -23,5 +25,9 @@ router.use('/time', timeRouter);
 router.use('/worlds', worldsRouter);
 router.use('/trade', tradeRouter);
 router.use('/market', marketRouter);
+
+// V2: Single world routes
+router.use('/factions', factionsRouter);
+router.use('/army', armyRouter);
 
 export const apiRouter: RouterType = router;

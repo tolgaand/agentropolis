@@ -6,8 +6,9 @@ import {
   TradeOfferModel,
   TransactionModel,
   WorldModel,
+  BuildingModel,
 } from '@agentropolis/db';
-import { getWorldForModel, getAgentTypeFromModel } from '@agentropolis/shared';
+import { getWorldForModel, getAgentTypeFromModel, BUILDING_YIELDS, FERTILITY_MULTIPLIER, diminishingReturn, getHonorStatus, ECONOMY, type WorldId } from '@agentropolis/shared';
 import { WalletService } from '../services/wallet.service';
 import { authenticate, generateApiKey, hashApiKey } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -48,6 +49,7 @@ router.post(
         type,
         aiModel,
         worldId,
+        factionId: worldId,
         description,
         apiKeyHash,
         soul,
@@ -150,6 +152,96 @@ router.get(
   }
 );
 
+// GET /agents/me/parcels - List all parcels owned by authenticated agent
+router.get(
+  '/me/parcels',
+  authenticate,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const agentId = req.agent!.id;
+      const parcels = mapState.getParcelsForAgent(agentId);
+
+      res.json({
+        success: true,
+        data: parcels.map(p => ({
+          id: p.id,
+          blockX: p.blockX,
+          blockY: p.blockY,
+          bounds: p.bounds,
+          theme: p.theme,
+          terrain: p.terrain,
+          fertilityStars: p.fertilityStars,
+          registeredAt: p.registeredAt,
+        })),
+        total: parcels.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /agents/me/claim-parcel - Claim an additional empty parcel
+router.post(
+  '/me/claim-parcel',
+  authenticate,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const agentId = req.agent!.id;
+
+      const agent = await AgentModel.findById(agentId);
+      if (!agent) {
+        throw new HttpError(404, 'Agent not found');
+      }
+
+      // Deduct claim cost from wallet
+      const cost = ECONOMY.PARCEL_CLAIM_COST;
+      await WalletService.purchase(agentId, cost, 'Parcel claim');
+
+      // Assign new parcel
+      const regOrder = await AgentModel.countDocuments({ worldId: agent.worldId });
+      const { parcel, objects } = mapState.assignParcelToAgent(
+        agentId,
+        agent.name,
+        agent.aiModel || 'unknown',
+        agent.worldId || 'open_frontier',
+        agent.legacyMessage,
+        undefined,
+        undefined,
+        regOrder,
+      );
+
+      // Broadcast to spectators
+      broadcastParcelCreated((agent.worldId || 'open_frontier') as WorldId, parcel, objects, {
+        id: agentId,
+        name: agent.name,
+        aiModel: agent.aiModel || 'unknown',
+        type: agent.type,
+        legacyMessage: agent.legacyMessage,
+        registeredAt: agent.registeredAt?.toISOString() || new Date().toISOString(),
+      });
+
+      res.status(201).json({
+        success: true,
+        data: {
+          parcel: {
+            id: parcel.id,
+            blockX: parcel.blockX,
+            blockY: parcel.blockY,
+            bounds: parcel.bounds,
+            theme: parcel.theme,
+            terrain: parcel.terrain,
+            fertilityStars: parcel.fertilityStars,
+          },
+          cost,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // GET /agents/:id - Get agent by ID (public info)
 router.get(
   '/:id',
@@ -211,6 +303,82 @@ router.get(
         success: true,
         data: agents,
         pagination: { total, limit, offset },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /agents/:id/inventory - Get agent inventory and production rates
+router.get(
+  '/:id/inventory',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const agent = await AgentModel.findById(req.params.id);
+      if (!agent) {
+        throw new HttpError(404, 'Agent not found');
+      }
+
+      // Get all buildings for production calculation
+      const buildings = await BuildingModel.find({ ownerId: agent._id }).lean();
+
+      // Calculate current production rates
+      const fertilityStars = agent.parcelDNA?.fs ?? 3;
+      const fertilityMult = FERTILITY_MULTIPLIER[fertilityStars] ?? 1.0;
+
+      const typeCounts: Record<string, number> = {};
+      const productionRates: Record<string, number> = {};
+      const buildingBreakdown: Array<{
+        type: string;
+        name: string;
+        yields: Record<string, number>;
+      }> = [];
+
+      for (const building of buildings) {
+        const type = building.type;
+        typeCounts[type] = (typeCounts[type] || 0) + 1;
+
+        const yields = BUILDING_YIELDS[type];
+        if (!yields || Object.keys(yields).length === 0) continue;
+
+        const buildingYields: Record<string, number> = {};
+
+        for (const [resource, baseAmount] of Object.entries(yields)) {
+          if (baseAmount === undefined) continue;
+
+          const diminishedAmount = diminishingReturn(baseAmount, typeCounts[type]);
+          const finalAmount = diminishedAmount * fertilityMult;
+
+          productionRates[resource] = (productionRates[resource] || 0) + finalAmount;
+          buildingYields[resource] = finalAmount;
+        }
+
+        if (Object.keys(buildingYields).length > 0) {
+          buildingBreakdown.push({
+            type: building.type,
+            name: building.name,
+            yields: buildingYields,
+          });
+        }
+      }
+
+      // Convert inventory Map to plain object
+      const inventory = agent.inventory instanceof Map
+        ? Object.fromEntries(agent.inventory)
+        : (agent.inventory || {});
+
+      res.json({
+        success: true,
+        data: {
+          agentId: agent._id.toString(),
+          inventory,
+          productionRates,
+          fertilityMultiplier: fertilityMult,
+          fertilityStars,
+          buildingCount: buildings.length,
+          buildingBreakdown,
+        },
       });
     } catch (error) {
       next(error);
@@ -342,6 +510,40 @@ router.get(
           },
           associates,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /agents/honor-leaderboard - Get honor leaderboard
+router.get(
+  '/honor-leaderboard',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 20, 100);
+
+      // Get top agents by honor
+      const topAgents = await AgentModel.find()
+        .select('name factionId honor')
+        .sort({ honor: -1 })
+        .limit(limit);
+
+      // Format leaderboard
+      const leaderboard = topAgents.map((agent, index) => ({
+        rank: index + 1,
+        agentId: agent._id.toString(),
+        name: agent.name,
+        factionId: agent.factionId,
+        honor: agent.honor,
+        status: getHonorStatus(agent.honor),
+      }));
+
+      res.json({
+        success: true,
+        data: leaderboard,
+        total: leaderboard.length,
       });
     } catch (error) {
       next(error);

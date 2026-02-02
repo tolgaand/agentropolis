@@ -1,7 +1,9 @@
-import { Router, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { WorldModel, AgentModel, ResourceModel } from '@agentropolis/db';
 import type { WorldId } from '@agentropolis/shared';
 import { HttpError } from '../middleware/errorHandler';
+import { mapState } from '../game/map/state';
+import { timeServer } from '../time/TimeServer';
 
 const router: Router = Router();
 
@@ -19,6 +21,129 @@ router.get(
     } catch (error) {
       next(error);
     }
+  }
+);
+
+// GET /worlds/map - Full map state (parcels, objects, time) for agents without socket
+router.get(
+  '/map',
+  async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const mapData = mapState.getFullMapData();
+      const timeState = timeServer.getState();
+
+      res.json({
+        success: true,
+        data: {
+          parcels: mapData.parcels.map(p => ({
+            id: p.id,
+            agentId: p.agentId,
+            agentName: p.agentName,
+            worldId: p.worldId,
+            blockX: p.blockX,
+            blockY: p.blockY,
+            bounds: p.bounds,
+            theme: p.theme,
+            terrain: p.terrain,
+            fertilityStars: p.fertilityStars,
+          })),
+          objects: mapData.objects.map(o => ({
+            id: o.id,
+            type: o.type,
+            gridX: o.gridX,
+            gridY: o.gridY,
+            buildingType: o.buildingType,
+            name: o.name,
+            ownerId: o.ownerId,
+            parcelId: o.parcelId,
+            level: o.level,
+          })),
+          totalParcels: mapData.parcels.length,
+          totalObjects: mapData.objects.length,
+          time: {
+            dayIndex: timeState.dayIndex,
+            minuteOfDay: timeState.minuteOfDay,
+            phase: timeState.phase,
+          },
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /worlds/map/parcel/:blockX/:blockY - Get specific parcel details
+router.get(
+  '/map/parcel/:blockX/:blockY',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const blockX = parseInt(req.params.blockX, 10);
+      const blockY = parseInt(req.params.blockY, 10);
+
+      if (isNaN(blockX) || isNaN(blockY)) {
+        throw new HttpError(400, 'blockX and blockY must be integers');
+      }
+
+      const parcel = mapState.getParcelByBlock(blockX, blockY);
+      if (!parcel) {
+        throw new HttpError(404, 'No parcel at this block position');
+      }
+
+      // Get objects in this parcel
+      const mapData = mapState.getFullMapData();
+      const parcelObjects = mapData.objects.filter(o => o.parcelId === parcel.id);
+
+      res.json({
+        success: true,
+        data: {
+          parcel: {
+            id: parcel.id,
+            agentId: parcel.agentId,
+            agentName: parcel.agentName,
+            worldId: parcel.worldId,
+            blockX: parcel.blockX,
+            blockY: parcel.blockY,
+            bounds: parcel.bounds,
+            theme: parcel.theme,
+            terrain: parcel.terrain,
+            fertilityStars: parcel.fertilityStars,
+            registeredAt: parcel.registeredAt,
+            legacyMessage: parcel.legacyMessage,
+          },
+          objects: parcelObjects.map(o => ({
+            id: o.id,
+            type: o.type,
+            gridX: o.gridX,
+            gridY: o.gridY,
+            buildingType: o.buildingType,
+            name: o.name,
+            level: o.level,
+          })),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /worlds/time - Current game time state
+router.get(
+  '/time',
+  (_req: Request, res: Response): void => {
+    const state = timeServer.getState();
+    const timeDisplay = timeServer.getTimeDisplay();
+
+    res.json({
+      success: true,
+      data: {
+        dayIndex: state.dayIndex,
+        minuteOfDay: state.minuteOfDay,
+        phase: state.phase,
+        hourDisplay: timeDisplay,
+      },
+    });
   }
 );
 
@@ -170,53 +295,6 @@ router.get(
           name: world.name,
           passiveBonus: world.passiveBonus,
           resources: worldResources,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// GET /worlds/exchange-rates - Get all exchange rates
-router.get(
-  '/exchange-rates',
-  async (_req, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const worlds = await WorldModel.find().select(
-        '_id name currency currentExchangeRate baseExchangeRate currencyVolatility'
-      );
-
-      // Build exchange rate matrix (all currencies vs OPN as base)
-      const rates: Record<string, Record<string, number>> = {};
-
-      for (const world of worlds) {
-        rates[world.currency.code] = {};
-        for (const targetWorld of worlds) {
-          if (world.id === targetWorld.id) {
-            rates[world.currency.code][targetWorld.currency.code] = 1;
-          } else {
-            // Convert via OPN as base currency
-            const rate =
-              world.currentExchangeRate / targetWorld.currentExchangeRate;
-            rates[world.currency.code][targetWorld.currency.code] = rate;
-          }
-        }
-      }
-
-      res.json({
-        success: true,
-        data: {
-          baseCurrency: 'OPN',
-          rates,
-          worlds: worlds.map((w) => ({
-            id: w.id,
-            name: w.name,
-            currency: w.currency,
-            rate: w.currentExchangeRate,
-            volatility: w.currencyVolatility,
-          })),
-          updatedAt: new Date(),
         },
       });
     } catch (error) {
