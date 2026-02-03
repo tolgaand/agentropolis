@@ -1,348 +1,85 @@
-import { Router, Request, Response, NextFunction } from 'express';
+/**
+ * Building Routes — Public building query endpoints
+ */
+
+import { Router } from 'express';
 import { BuildingModel } from '@agentropolis/db';
-import { WalletService } from '../services/wallet.service';
-import { authenticate } from '../middleware/auth';
-import { validate } from '../middleware/validate';
-import { createBuildingSchema, updateBuildingSchema, buildingsQuerySchema } from '../validation/schemas';
-import { HttpError } from '../middleware/errorHandler';
-import { BUILDING_CONFIGS, SPRITE_RANGES } from '@agentropolis/shared';
-import { mapState } from '../game/map/state';
-import { broadcastEvent } from '../socket';
+import { CITY_ID } from '@agentropolis/shared';
 
-const router: Router = Router();
+const router: ReturnType<typeof Router> = Router();
 
-// Building costs by type (base cost in credits)
-const BUILDING_COSTS: Record<string, number> = {
-  farm: 70,
-  lumberyard: 70,
-  quarry: 50,
-  iron_mine: 70,
-  market: 120,
-  barracks: 170,
-  stable: 130,
-  watchtower: 70,
-  wall: 180,
-  castle: 400,
-  academy: 180,
-};
+/**
+ * GET /api/buildings
+ * Query params: ?type=coffee_shop, ?chunkX=0&chunkZ=0, ?hiring=true
+ */
+router.get('/', async (req, res) => {
+  const filter: Record<string, unknown> = { cityId: CITY_ID };
 
-// Select appropriate sprite based on building type
-function selectSpriteId(type: string): number {
-  const ranges = SPRITE_RANGES[type];
-  if (!ranges || ranges.length === 0) {
-    return 25; // Default fallback
+  if (req.query.type) {
+    filter.type = req.query.type;
+  }
+  if (req.query.chunkX !== undefined && req.query.chunkZ !== undefined) {
+    filter.chunkX = Number(req.query.chunkX);
+    filter.chunkZ = Number(req.query.chunkZ);
   }
 
-  // Select random sprite from available ranges
-  const randomRangeIndex = Math.floor(Math.random() * ranges.length);
-  const range = ranges[randomRangeIndex];
+  const buildings = await BuildingModel.find(filter)
+    .select('buildingId type worldX worldZ level ownerId employees maxEmployees chunkX chunkZ status assetKey')
+    .lean();
 
-  if (typeof range === 'number') {
-    return range;
+  let result = buildings.map((b) => ({
+    buildingId: b._id.toString(),
+    type: b.type,
+    worldX: b.worldX,
+    worldZ: b.worldZ,
+    chunkX: b.chunkX,
+    chunkZ: b.chunkZ,
+    level: b.level,
+    status: b.status,
+    assetKey: b.assetKey,
+    ownerId: b.ownerId?.toString() ?? null,
+    employeeCount: b.employees?.length ?? 0,
+    maxEmployees: b.maxEmployees,
+  }));
+
+  // Filter hiring buildings (active + has vacancy)
+  if (req.query.hiring === 'true') {
+    result = result.filter((b) => b.status === 'active' && b.maxEmployees > 0 && b.employeeCount < b.maxEmployees);
   }
 
-  // Range is [start, end]
-  return Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
-}
+  res.json({ buildings: result, count: result.length });
+});
 
-// POST /buildings - Create building
-router.post(
-  '/',
-  authenticate,
-  validate(createBuildingSchema),
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { parcelId, worldId, type, name, coords, spriteId: requestedSpriteId } = req.body;
-      const ownerId = req.agent!.id;
+/**
+ * GET /api/buildings/:buildingId
+ * Returns single building detail
+ */
+router.get('/:buildingId', async (req, res) => {
+  const building = await BuildingModel.findById(req.params.buildingId)
+    .select('buildingId type worldX worldZ level ownerId employees maxEmployees chunkX chunkZ status assetKey income operatingCost')
+    .lean();
 
-      // Check if coordinates are already occupied in this parcel
-      const existingBuilding = await BuildingModel.findOne({
-        parcelId,
-        'coords.x': coords.x,
-        'coords.y': coords.y,
-      });
-
-      if (existingBuilding) {
-        throw new HttpError(409, 'Coordinates already occupied');
-      }
-
-      // Determine building cost
-      const cost = BUILDING_COSTS[type] || 100;
-
-      // Charge for building
-      await WalletService.purchase(ownerId, cost, `Building construction: ${type}`, parcelId);
-
-      // Determine sprite ID
-      const spriteId = requestedSpriteId ?? selectSpriteId(type);
-
-      // Get default stats from config
-      const config = BUILDING_CONFIGS[type];
-      const defaultStats = config?.defaultStats || {};
-
-      // Create building
-      const building = new BuildingModel({
-        parcelId,
-        worldId,
-        ownerId,
-        type,
-        name,
-        coords,
-        spriteId,
-        stats: defaultStats,
-      });
-      await building.save();
-
-      // Get parcel bounds for absolute positioning
-      const parcel = mapState.getParcel(parcelId);
-      const gridX = parcel ? parcel.bounds.x + coords.x : coords.x;
-      const gridY = parcel ? parcel.bounds.y + coords.y : coords.y;
-
-      // Create MapObject and add to in-memory state
-      const mapObject = {
-        id: `building_${building._id}`,
-        type: 'building' as const,
-        gridX,
-        gridY,
-        spriteId,
-        buildingType: type,
-        name,
-        ownerId,
-        parcelId,
-        level: 1,
-      };
-      mapState.addObjectToParcel(parcelId, mapObject);
-
-      // Broadcast to spectators
-      broadcastEvent({
-        type: 'building_created',
-        timestamp: new Date().toISOString(),
-        payload: { object: mapObject },
-        scope: 'global',
-        parcelId,
-      });
-
-      res.status(201).json({
-        success: true,
-        data: building.toJSON(),
-      });
-    } catch (error) {
-      next(error);
-    }
+  if (!building || building.cityId !== CITY_ID) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Building not found' } });
+    return;
   }
-);
 
-// GET /buildings - List buildings
-router.get(
-  '/',
-  validate(buildingsQuerySchema, 'query'),
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { limit, offset, parcelId, worldId, type } = req.query as unknown as {
-        limit: number;
-        offset: number;
-        parcelId?: string;
-        worldId?: string;
-        type?: string;
-      };
-
-      const query: Record<string, unknown> = {};
-      if (parcelId) query.parcelId = parcelId;
-      if (worldId) query.worldId = worldId;
-      if (type) query.type = type;
-
-      const [buildings, total] = await Promise.all([
-        BuildingModel.find(query)
-          .populate('ownerId', 'name type')
-          .sort({ level: -1, createdAt: -1 })
-          .skip(offset)
-          .limit(limit),
-        BuildingModel.countDocuments(query),
-      ]);
-
-      res.json({
-        success: true,
-        data: buildings,
-        pagination: { total, limit, offset },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// GET /buildings/:id - Get building details
-router.get(
-  '/:id',
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const building = await BuildingModel.findById(req.params.id)
-        .populate('ownerId', 'name type');
-
-      if (!building) {
-        throw new HttpError(404, 'Building not found');
-      }
-
-      res.json({
-        success: true,
-        data: building.toJSON(),
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// PATCH /buildings/:id - Update building
-router.patch(
-  '/:id',
-  authenticate,
-  validate(updateBuildingSchema),
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const building = await BuildingModel.findById(req.params.id);
-
-      if (!building) {
-        throw new HttpError(404, 'Building not found');
-      }
-
-      if (building.ownerId.toString() !== req.agent!.id) {
-        throw new HttpError(403, 'Not authorized to update this building');
-      }
-
-      const { name, stats } = req.body;
-
-      if (name) building.name = name;
-      if (stats) {
-        building.stats = { ...building.stats, ...stats };
-      }
-
-      await building.save();
-
-      res.json({
-        success: true,
-        data: building.toJSON(),
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// POST /buildings/:id/upgrade - Upgrade building level
-router.post(
-  '/:id/upgrade',
-  authenticate,
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const building = await BuildingModel.findById(req.params.id);
-
-      if (!building) {
-        throw new HttpError(404, 'Building not found');
-      }
-
-      if (building.ownerId.toString() !== req.agent!.id) {
-        throw new HttpError(403, 'Not authorized to upgrade this building');
-      }
-
-      if (building.level >= 5) {
-        throw new HttpError(400, 'Building already at maximum level');
-      }
-
-      // Upgrade cost increases with level
-      const upgradeCost = (BUILDING_COSTS[building.type] || 100) * building.level;
-
-      await WalletService.purchase(
-        req.agent!.id,
-        upgradeCost,
-        `Building upgrade: ${building.type} to level ${building.level + 1}`,
-        building._id.toString()
-      );
-
-      building.level += 1;
-
-      // Boost stats on upgrade
-      if (building.stats.capacity) {
-        building.stats.capacity = Math.floor(building.stats.capacity * 1.2);
-      }
-
-      await building.save();
-
-      // Broadcast upgrade to spectators
-      broadcastEvent({
-        type: 'building_upgraded',
-        timestamp: new Date().toISOString(),
-        payload: {
-          buildingId: `building_${building._id}`,
-          parcelId: building.parcelId,
-          level: building.level,
-          type: building.type,
-          name: building.name,
-        },
-        scope: 'global',
-        parcelId: building.parcelId,
-      });
-
-      res.json({
-        success: true,
-        data: building.toJSON(),
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// DELETE /buildings/:id - Demolish building
-router.delete(
-  '/:id',
-  authenticate,
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const building = await BuildingModel.findById(req.params.id);
-
-      if (!building) {
-        throw new HttpError(404, 'Building not found');
-      }
-
-      if (building.ownerId.toString() !== req.agent!.id) {
-        throw new HttpError(403, 'Not authorized to demolish this building');
-      }
-
-      // Refund 25% of original cost
-      const refund = Math.floor((BUILDING_COSTS[building.type] || 100) * 0.25);
-      await WalletService.reward({
-        agentId: req.agent!.id,
-        amount: refund,
-        reason: 'Building demolition refund',
-        refId: building._id.toString(),
-      });
-
-      const parcelId = building.parcelId;
-      const objectId = `building_${building._id}`;
-
-      await building.deleteOne();
-
-      // Remove from in-memory map state
-      mapState.removeObject(objectId);
-
-      // Broadcast demolition to spectators
-      broadcastEvent({
-        type: 'building_removed',
-        timestamp: new Date().toISOString(),
-        payload: { objectId, parcelId },
-        scope: 'global',
-        parcelId,
-      });
-
-      res.json({
-        success: true,
-        message: 'Building demolished',
-        refund,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+  res.json({
+    buildingId: building._id.toString(),
+    type: building.type,
+    worldX: building.worldX,
+    worldZ: building.worldZ,
+    chunkX: building.chunkX,
+    chunkZ: building.chunkZ,
+    level: building.level,
+    status: building.status,
+    assetKey: building.assetKey,
+    ownerId: building.ownerId?.toString() ?? null,
+    employeeCount: building.employees?.length ?? 0,
+    maxEmployees: building.maxEmployees,
+    income: building.income,
+    operatingCost: building.operatingCost,
+  });
+});
 
 export default router;

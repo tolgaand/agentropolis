@@ -1,25 +1,29 @@
-import { Router, type Router as RouterType } from 'express';
-import type { ApiResponse } from '@agentropolis/shared';
+import { Router } from 'express';
+import { isMongoHealthy } from '../config/db';
+import { isRedisHealthy } from '../config/redis';
+import { env } from '../config/env';
 
-const router: RouterType = Router();
+const router: ReturnType<typeof Router> = Router();
 
-interface HealthData {
-  status: 'ok';
-  timestamp: string;
-  uptime: number;
-}
+const startedAt = Date.now();
 
-router.get('/', (_req, res) => {
-  const response: ApiResponse<HealthData> = {
-    success: true,
-    data: {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
+router.get('/', async (_req, res) => {
+  const mongoOk = isMongoHealthy();
+  const redisOk = await isRedisHealthy();
+  const uptimeMs = Date.now() - startedAt;
+
+  const healthy = mongoOk && redisOk;
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    uptime: `${Math.floor(uptimeMs / 1000)}s`,
+    env: env.nodeEnv,
+    services: {
+      mongo: mongoOk ? 'connected' : 'disconnected',
+      redis: redisOk ? 'connected' : 'disconnected',
     },
-    error: null,
-  };
-  res.json(response);
+    timestamp: new Date().toISOString(),
+  });
 });
 
-export const healthRouter: RouterType = router;
+export default router;
