@@ -3,61 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Five kingdoms. One empire. Endless conquest." />
+    <meta name="description" content="AGENTROPOLIS - Five nations. Five currencies. One multiverse." />
     <title>AGENTROPOLIS</title>
 
-    <!-- Fonts: Medieval Display + Body -->
+    <!-- Fonts: Terminal + Display + Body -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
       /* ========================================
-         AGENTROPOLIS MEDIEVAL EMPIRE DESIGN SYSTEM
+         AGENTROPOLIS DYSTOPIAN DESIGN SYSTEM
          ======================================== */
 
       :root {
         /* Background Layers */
-        --bg-void: #1a1209;
-        --bg-primary: #221a0f;
-        --bg-secondary: #2a2015;
-        --bg-tertiary: #36291c;
-        --bg-surface: #443420;
+        --bg-void: #05050a;
+        --bg-primary: #0a0a12;
+        --bg-secondary: #12121f;
+        --bg-tertiary: #1a1a2e;
+        --bg-surface: #22223a;
 
         /* Text */
-        --text-primary: #f0e8d8;
-        --text-secondary: #b8a890;
-        --text-muted: #786850;
-        --text-dim: #584830;
+        --text-primary: #e8e8f0;
+        --text-secondary: #a0a0b8;
+        --text-muted: #606078;
+        --text-dim: #404058;
 
-        /* Medieval Accents */
-        --accent-gold: #c9a84c;
-        --accent-crimson: #8b0000;
-        --accent-forest: #2d5a27;
-        --accent-steel: #708090;
-        --accent-royal: #4b0082;
-        --accent-bronze: #cd7f32;
-
-        /* Kingdom Colors */
-        --claude-nation-primary: #8b2500;
-        --claude-nation-secondary: #a0392a;
-        --claude-nation-bg: rgba(139, 37, 0, 0.1);
-
-        --openai-empire-primary: #8b8b00;
-        --openai-empire-secondary: #a0a030;
-        --openai-empire-bg: rgba(139, 139, 0, 0.1);
-
-        --gemini-republic-primary: #2d5a27;
-        --gemini-republic-secondary: #3d7a37;
-        --gemini-republic-bg: rgba(45, 90, 39, 0.1);
-
-        --grok-syndicate-primary: #c9a84c;
-        --grok-syndicate-secondary: #dbc06c;
-        --grok-syndicate-bg: rgba(201, 168, 76, 0.1);
-
-        --open-frontier-primary: #4682b4;
-        --open-frontier-secondary: #5a9cc4;
-        --open-frontier-bg: rgba(70, 130, 180, 0.1);
+        /* Neon Accents */
+        --neon-cyan: #00ffff;
+        --neon-magenta: #ff00ff;
+        --neon-yellow: #ffff00;
+        --neon-green: #00ff88;
+        --neon-red: #ff3366;
+        --neon-blue: #00aaff;
 
         /* Status */
         --success: #22c55e;
@@ -66,7 +45,8 @@
         --info: #3b82f6;
 
         /* Typography */
-        --font-display: 'Cinzel', 'Garamond', serif;
+        --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+        --font-display: 'Orbitron', 'Rajdhani', sans-serif;
         --font-body: 'Inter', system-ui, sans-serif;
 
         /* Spacing */
@@ -78,8 +58,40 @@
         --space-2xl: 3rem;
 
         /* Borders */
-        --border-color: rgba(201, 168, 76, 0.15);
-        --border-glow: rgba(201, 168, 76, 0.3);
+        --border-color: rgba(255, 255, 255, 0.1);
+        --border-glow: rgba(0, 255, 255, 0.3);
+
+        /* Effects */
+        --glow-intensity: 0.6;
+        --scanline-opacity: 0.03;
+
+        /* HUD Panel Tokens (compat) */
+        --panel-bg: rgba(5, 5, 10, 0.88);
+        --panel-bg-solid: rgba(5, 5, 10, 0.94);
+        --panel-border: rgba(0, 255, 255, 0.15);
+        --panel-border-hover: rgba(0, 255, 255, 0.3);
+        --panel-blur: 12px;
+        --panel-radius: 4px;
+        --panel-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 4px 24px rgba(0, 0, 0, 0.5);
+
+        /* HUD Signal Colors (compat) */
+        --hud-teal: #00ffff;
+        --hud-teal-dim: rgba(0, 255, 255, 0.12);
+        --hud-brass: #eab308;
+        --hud-brass-dim: rgba(234, 179, 8, 0.12);
+        --hud-red: #ff3366;
+        --hud-red-dim: rgba(255, 51, 102, 0.12);
+        --hud-label: #606078;
+        --hud-value: #e8e8f0;
+        --hud-dim: rgba(96, 96, 120, 0.35);
+        --hud-cell-bg: rgba(18, 18, 31, 0.5);
+        --hud-cell-border: rgba(255, 255, 255, 0.06);
+
+        /* Legacy compat aliases */
+        --accent-brass: #eab308;
+        --accent-teal: #00ffff;
+        --accent-crimson: #ff3366;
+        --accent-gold: #eab308;
       }
 
       * {
@@ -109,25 +121,35 @@
         position: relative;
       }
 
-      /* Parchment Vignette Overlay — hidden in-game */
+      /* Scanlines Overlay */
       #root::after {
         content: '';
         position: fixed;
         inset: 0;
-        background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 18, 9, 0.4) 100%);
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 255, 255, var(--scanline-opacity)) 2px,
+          rgba(0, 255, 255, var(--scanline-opacity)) 4px
+        );
         pointer-events: none;
         z-index: 9999;
-        transition: opacity 0.3s ease;
-      }
-      body.in-game #root::after {
-        opacity: 0 !important;
-        display: none;
       }
 
-      /* Reveal Animation */
-      @keyframes reveal {
-        0% { opacity: 0; transform: translateY(10px); }
-        100% { opacity: 1; transform: translateY(0); }
+      /* Glitch Animation */
+      @keyframes glitch {
+        0% { transform: translate(0); filter: hue-rotate(0deg); }
+        10% { transform: translate(-2px, 1px); }
+        20% { transform: translate(2px, -1px); filter: hue-rotate(90deg); }
+        30% { transform: translate(-1px, 2px); }
+        40% { transform: translate(1px, -2px); filter: hue-rotate(180deg); }
+        50% { transform: translate(-2px, 1px); }
+        60% { transform: translate(2px, 1px); filter: hue-rotate(270deg); }
+        70% { transform: translate(-1px, -1px); }
+        80% { transform: translate(1px, 2px); }
+        90% { transform: translate(-2px, -2px); filter: hue-rotate(360deg); }
+        100% { transform: translate(0); filter: hue-rotate(0deg); }
       }
 
       /* Flicker Animation */
@@ -153,9 +175,15 @@
         to { transform: rotate(360deg); }
       }
 
+      /* Status pulse */
+      @keyframes status-pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+
       /* Selection */
       ::selection {
-        background: var(--accent-gold);
+        background: var(--neon-cyan);
         color: var(--bg-void);
       }
 
@@ -175,7 +203,7 @@
       }
 
       ::-webkit-scrollbar-thumb:hover {
-        background: var(--accent-gold);
+        background: var(--neon-cyan);
       }
     </style>
   </head>

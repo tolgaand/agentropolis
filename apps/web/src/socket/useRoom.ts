@@ -1,43 +1,24 @@
 /**
  * useRoom Hook - Room Lifecycle Management
  *
- * Automatically joins a room on mount and leaves on unmount.
- * Handles connection state changes (rejoins after reconnect).
+ * V1 room system stub — V2 uses chunk-based viewport subscriptions.
+ * Kept for backwards compatibility but does nothing.
  */
 
 import { useEffect } from 'react';
 import { useSocketContext } from './socket.context';
-import type { SocketRoom } from '@agentropolis/shared';
 
-/**
- * Join a socket room for the lifetime of the component.
- * Automatically handles:
- * - Joining on mount
- * - Leaving on unmount
- * - Rejoining after reconnect
- *
- * @param roomName - The room to join (e.g., 'multiverse', 'world:claude_nation')
- */
-export function useRoom(roomName: SocketRoom): void {
-  const { joinRoom, leaveRoom, connectionStatus } = useSocketContext();
+export function useRoom(roomName: string): void {
+  const { connectionStatus } = useSocketContext();
 
   useEffect(() => {
-    // Only join when connected or synced
     if (connectionStatus !== 'connected' && connectionStatus !== 'synced') {
       return;
     }
-
-    joinRoom(roomName);
-
-    return () => {
-      leaveRoom(roomName);
-    };
-  }, [roomName, connectionStatus, joinRoom, leaveRoom]);
+    console.log(`[useRoom] V1 room subscription ignored: ${roomName}`);
+  }, [roomName, connectionStatus]);
 }
 
-/**
- * Alias for useRoom for backwards compatibility
- */
 export const useRoomSubscription = useRoom;
 
 export default useRoom;

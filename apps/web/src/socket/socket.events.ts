@@ -1,25 +1,11 @@
 /**
  * Socket Event Constants and Type Helpers
  *
- * Re-exports typed event names from shared package
- * and provides helper functions for event handling.
+ * Re-exports typed event names from shared contracts/v2.
  */
 
-export { SOCKET_EVENTS } from '@agentropolis/shared';
+export { SOCKET_EVENTS } from '@agentropolis/shared/contracts/v2';
 export type {
   ServerToClientEvents,
   ClientToServerEvents,
-  TimeTick,
-  WorldUpdate,
-  WorldUpdateBatch,
-  TradeCompleted,
-  TradeOfferCreated,
-  PriceUpdateBatch,
-  ExchangeRateBatch,
-  MultiverseSyncState,
-  MapStatePayload,
-  RealtimeEvent,
-  SocketRoom,
-  RoomJoinPayload,
-  RoomLeavePayload,
-} from '@agentropolis/shared';
+} from '@agentropolis/shared/contracts/v2';

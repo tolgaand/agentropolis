@@ -9,13 +9,13 @@
  */
 
 import { io, type Socket } from 'socket.io-client';
-import type { ServerToClientEvents, ClientToServerEvents } from '@agentropolis/shared';
+import type { ServerToClientEvents, ClientToServerEvents } from '@agentropolis/shared/contracts/v2';
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: TypedSocket | null = null;
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_API_URL || '';
 
 /**
  * Socket configuration

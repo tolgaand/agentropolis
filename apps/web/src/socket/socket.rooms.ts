@@ -1,49 +1,18 @@
 /**
  * Socket Room Helpers
  *
- * Utilities for constructing room names and managing room state.
+ * V1 room system — kept as stub for backwards compatibility.
+ * V2 uses chunk-based viewport subscriptions instead of named rooms.
  */
 
-import type { WorldId, SocketRoom } from '@agentropolis/shared';
-
-/**
- * Room name constants and constructors
- */
 export const ROOMS = {
   MULTIVERSE: 'multiverse' as const,
-  GAME_MAP: 'game:map' as SocketRoom,
-  world: (worldId: WorldId): SocketRoom => `world:${worldId}`,
-  worldMap: (worldId: WorldId): SocketRoom => `world:${worldId}:map`,
 } as const;
 
-/**
- * Parse a room name to extract its type and parameters
- */
-export function parseRoom(room: SocketRoom): {
-  type: 'multiverse' | 'world' | 'worldMap';
-  worldId?: WorldId;
-} {
-  if (room === 'multiverse') {
-    return { type: 'multiverse' };
-  }
-
-  const worldMapMatch = room.match(/^world:(.+):map$/);
-  if (worldMapMatch) {
-    return { type: 'worldMap', worldId: worldMapMatch[1] as WorldId };
-  }
-
-  const worldMatch = room.match(/^world:(.+)$/);
-  if (worldMatch) {
-    return { type: 'world', worldId: worldMatch[1] as WorldId };
-  }
-
-  // Fallback
-  return { type: 'multiverse' };
+export function parseRoom(room: string): { type: string } {
+  return { type: room };
 }
 
-/**
- * Check if a room is a map room (for clearing map state on leave)
- */
-export function isMapRoom(room: SocketRoom): boolean {
+export function isMapRoom(room: string): boolean {
   return room.endsWith(':map');
 }

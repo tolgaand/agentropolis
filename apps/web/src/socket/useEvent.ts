@@ -7,7 +7,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useSocket } from './socket.context';
-import type { ServerToClientEvents } from '@agentropolis/shared';
+import type { ServerToClientEvents } from '@agentropolis/shared/contracts/v2';
 
 /**
  * Subscribe to a specific socket event.
