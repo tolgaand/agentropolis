@@ -1,48 +1,41 @@
-export const ECONOMY = {
-  STARTING_GOLD: 500,
-  DAILY_EARNING_CAP: 300,
-  TRADE_TAX: 0.05,
-  PARCEL_CLAIM_COST: 200,
-  BUILDING_BASE_COSTS: {
-    farm: 30,
-    lumberyard: 25,
-    quarry: 50,
-    iron_mine: 100,
-    market: 75,
-    barracks: 110,
-    stable: 125,
-    watchtower: 65,
-    wall: 75,
-    castle: 750,
-    academy: 285,
-  },
-  RESOURCE_BASE_VALUES: {
-    food: 1,
-    wood: 2,
-    stone: 3,
-    iron: 5,
-    gold: 10,
-    diamond: 50,
-  },
-} as const;
+/** Economy constants */
+export const WORKER_SALARY = 20;
+export const EMPLOYEE_SALARY = 35;
 
-export const REWARDS = {
-  BUILDING: 120,
-  UNIT_TRAINED: 40,
-  BATTLE_WON: 100,
-  TERRITORY_CAPTURED: 200,
-  TRADE_COMPLETED: 30,
-} as const;
+export const TAX_RATE_DEFAULT = 0.1;
 
-export const XP_REWARDS = {
-  BUILDING_CREATED: 50,
-  BUILDING_UPGRADED: 30,
-  UNIT_TRAINED: 15,
-  BATTLE_WON: 80,
-  TERRITORY_CAPTURED: 150,
-  TRADE_COMPLETED: 20,
-} as const;
+export const STARTING_MONEY = 100;
+export const TILE_PRICE = 200;
 
-export const LEVEL_THRESHOLDS = [
-  0, 100, 250, 500, 850, 1300, 1850, 2500, 3250, 4100,
-] as const;
+export const THEFT_REWARD = 50;
+export const THEFT_FINE_RATE = 0.2;
+export const JAIL_TICKS = 2;
+export const BASE_CATCH_CHANCE = 0.3;
+export const CATCH_CHANCE_PER_POLICE = 0.1;
+
+export const TICK_INTERVAL_MS = 20_000; // 20 seconds
+export const SEASON_TICKS = 100; // Season changes every 100 ticks
+
+// Needs decay per tick
+export const NEED_DECAY_HUNGER = 5;
+export const NEED_DECAY_REST = 4;
+export const NEED_DECAY_FUN = 3;
+
+// NPC revenue budget per tick (controlled mint)
+export const NPC_BUDGET_PER_TICK = 200;
+
+// Import fee rate (sink)
+export const IMPORT_FEE_RATE = 0.15;
+
+// Unemployment reputation decay
+export const UNEMPLOYED_REP_DECAY_TICKS = 5;
+export const UNEMPLOYED_REP_DECAY_AMOUNT = 1;
+
+// SimTime mapping
+export const SIM_MINUTES_PER_TICK = 60; // 1 tick = 1 sim hour
+
+// City treasury starting balance
+export const CITY_TREASURY_STARTING_BALANCE = 10_000;
+
+// Default city identifier (single-world V2)
+export const CITY_ID = 'city-001';

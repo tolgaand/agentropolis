@@ -1,30 +1,50 @@
-// Common
 export * from './common';
-
-// Domain entities
+export * from './city';
 export * from './agent';
-export * from './economy';
 export * from './building';
 export * from './event';
+export * from './economy';
 
-// Multiverse system
-export * from './world';
-
-// Kingdom system
-export * from './kingdom';
-
-// Map system (includes 20x20 block system)
-export * from './map';
-
-// Parcel templates (20x20 system)
-export * from './parcel';
-
-// Building catalog
-export * from './buildingCatalog';
-
-// Realtime
-export * from './time';
-export * from './socket';
-
-// War/Combat
-export * from './army';
+// Re-export contracts/v2, but exclude NewsSeverity which conflicts with event.ts definition
+export {
+  // enums (Season/ZoneType already re-exported via city.ts)
+  type PlacementSource,
+  type CityMode,
+  type AgentActionType,
+  type SocketRole,
+  // coords
+  type ChunkCoord,
+  type WorldCoord,
+  CHUNK_SIZE,
+  worldToChunk,
+  chunkToWorld,
+  worldToLocal,
+  // payloads
+  type Placement,
+  type CitySyncPayload,
+  type ChunkPayloadData,
+  type TickCompletePayload,
+  type NewsPublishedPayload,
+  type NewsItem,
+  type ViewportSubscribePayload,
+  type ViewportUnsubscribePayload,
+  type WorldPlaceBuildingPayload,
+  type WorldPlaceBuildingResponse,
+  type WorldRemoveBuildingPayload,
+  type WorldRemoveBuildingResponse,
+  // agent payloads
+  type AgentRegisterPayload,
+  type AgentRegisterResponse,
+  type AgentActionPayload,
+  type AgentActionResponse,
+  type AgentSnapshotPayload,
+  type AgentJoinedPayload,
+  type AgentUpdatedPayload,
+  type AgentPromotedPayload,
+  type CrimeCommittedPayload,
+  type CrimeArrestedPayload,
+  // events
+  SOCKET_EVENTS,
+  type ServerToClientEvents,
+  type ClientToServerEvents,
+} from '../contracts/v2/index';

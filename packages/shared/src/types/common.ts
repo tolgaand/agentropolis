@@ -17,6 +17,8 @@ export type ErrorCode =
   | 'NOT_FOUND'
   | 'NAME_TAKEN'
   | 'INSUFFICIENT_FUNDS'
+  | 'NO_VACANCY'
+  | 'NOT_QUALIFIED'
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR';
 

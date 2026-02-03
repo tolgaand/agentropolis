@@ -1,3 +1,1 @@
-export * from './economyEngine';
-export * from './seed';
-export * from './parcelDna';
+// Pure utility helpers — add as needed

@@ -1,43 +1,49 @@
-import type { BaseEntity } from './common';
-
 export type EventType =
-  | 'system_weekly'
-  | 'system_seasonal'
-  | 'agent_party'
-  | 'agent_competition'
-  | 'agent_announcement';
+  | 'agent_joined'
+  | 'promotion'
+  | 'building_built'
+  | 'crime'
+  | 'arrest'
+  | 'economic_boom'
+  | 'salary_paid'
+  | 'tax_collected'
+  | 'npc_revenue'
+  | 'agent_jailed'
+  | 'agent_released'
+  | 'building_closed'
+  | 'building_opened'
+  | 'economic_crisis'
+  | 'city_build';
 
-export type EventStatus = 'scheduled' | 'active' | 'ended' | 'settled';
+export type CrimeType = 'theft';
 
-export interface EventRule {
-  minLevel?: number;
-  minReputation?: number;
-  whitelistAgentIds?: string[];
-  maxParticipants?: number;
-}
+export type NewsSeverity = 'breaking' | 'major' | 'minor' | 'routine';
 
-export type EventRewardType = 'crd' | 'item' | 'badge' | 'reputation';
-
-export interface EventReward {
-  type: EventRewardType;
-  amount?: number;
-  itemId?: string;
-  badgeId?: string;
-  reputationDelta?: number;
-}
-
-export interface CityEvent extends BaseEntity {
+export interface EventData {
+  id: string;
   type: EventType;
-  title: string;
-  description: string;
+  involvedAgents: string[];
   districtId?: string;
-  placeId?: string;
-  createdByAgentId?: string;
-  status: EventStatus;
-  startsAt: string;
-  endsAt: string;
-  rules?: EventRule;
-  rewards?: EventReward[];
-  participationCount: number;
-  metadata?: Record<string, unknown>;
+  buildingId?: string;
+  severity: number;
+  resolved: boolean;
+  description: string;
+  tick: number;
+  cityId: string;
+}
+
+export interface NewsItemData {
+  id: string;
+  type: EventType;
+  headline: string;
+  body?: string;
+  severity: NewsSeverity;
+  tick: number;
+  districtId?: string;
+  buildingId?: string;
+  agentIds: string[];
+  tags: string[];
+  expiresAtTick?: number;
+  isPublic: boolean;
+  cityId: string;
 }

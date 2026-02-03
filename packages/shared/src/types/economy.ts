@@ -1,30 +1,48 @@
-import type { BaseEntity } from './common';
+import type { Currency } from './city';
 
-export interface Wallet extends BaseEntity {
-  agentId: string;
+export type AccountOwnerType = 'agent' | 'city' | 'building' | 'district' | 'npc_pool';
+export type AccountStatus = 'active' | 'frozen';
+
+export type TransactionType =
+  | 'salary' | 'purchase' | 'tax' | 'crime_income'
+  | 'fine' | 'rent' | 'construction' | 'operating_cost' | 'npc_revenue'
+  | 'subsidy' | 'import_fee' | 'mint';
+
+export interface AccountData {
+  id: string;
+  ownerType: AccountOwnerType;
+  ownerId: string;
+  currency: Currency;
   balance: number;
-  dailyEarned: number;
-  dailyEarnedCap: number;
-  dailyResetAt: string;
-  lifetimeEarned: number;
-  lifetimeSpent: number;
+  reserved: number;
+  status: AccountStatus;
 }
 
-export type TransactionType = 'reward' | 'purchase' | 'fee' | 'transfer' | 'auction' | 'trade' | 'hack';
-
-export interface Transaction extends BaseEntity {
-  fromAgentId?: string;
-  toAgentId?: string;
+export interface LedgerEntryData {
+  id: string;
+  debitAccountId: string;
+  creditAccountId: string;
+  amount: number;
+  currency: Currency;
   type: TransactionType;
-  amount: number;
-  fee: number;
-  reason: string;
-  refId?: string;
-  meta?: Record<string, unknown>;
+  tick: number;
+  meta?: {
+    buildingId?: string;
+    districtId?: string;
+    reason?: string;
+  };
 }
 
-export interface TransferRequest {
-  toAgentId: string;
-  amount: number;
-  memo?: string;
+export interface EconomySnapshot {
+  moneySupply: number;
+  priceIndex: number;
+  inflationRate: number;
+  gdpRolling: number;
+  unemploymentRate: number;
+  crimeRate: number;
+  treasury: number;
+  taxRate: number;
+  averageIncome: number;
+  totalBuildings: number;
+  totalAgents: number;
 }

@@ -1,158 +1,49 @@
-import type { BuildingType } from '../types/building';
+import type { BuildingCatalogEntry } from '../types/building';
 
-export type BuildingStyle = 'wood' | 'stone' | 'iron';
-export type KingdomId = 'claude_nation' | 'openai_empire' | 'gemini_republic' | 'grok_syndicate' | 'open_frontier';
+export const BUILDING_CATALOG: BuildingCatalogEntry[] = [
+  {
+    type: 'police_station', name: 'Police Station', zone: 'civic',
+    tileW: 2, tileD: 2, baseIncome: 0, baseOperatingCost: 30, maxEmployees: 4,
+    professions: ['police'],
+    constructionCost: 250, glbModels: ['police_department_001'],
+  },
+  {
+    type: 'coffee_shop', name: 'Coffee Shop', zone: 'commercial',
+    tileW: 1, tileD: 1, baseIncome: 30, baseOperatingCost: 10, maxEmployees: 3,
+    professions: ['employee', 'shop_owner'],
+    constructionCost: 50, glbModels: ['ice_cream_shop_001'],
+  },
+  {
+    type: 'bar', name: 'Bar', zone: 'commercial',
+    tileW: 1, tileD: 1, baseIncome: 40, baseOperatingCost: 15, maxEmployees: 3,
+    professions: ['employee', 'shop_owner'],
+    constructionCost: 75, glbModels: ['bar_001'],
+  },
+  {
+    type: 'supermarket', name: 'Supermarket', zone: 'commercial',
+    tileW: 2, tileD: 2, baseIncome: 80, baseOperatingCost: 30, maxEmployees: 6,
+    professions: ['employee', 'shop_owner'],
+    constructionCost: 150, glbModels: ['supermarket_001', 'supermarket_002', 'supermarket_003'],
+  },
+  {
+    type: 'residential_small', name: 'Residential Building', zone: 'residential',
+    tileW: 1, tileD: 1, baseIncome: 10, baseOperatingCost: 5, maxEmployees: 0,
+    professions: [],
+    constructionCost: 25, glbModels: [
+      'residental_building_002', 'residental_building_003', 'residental_building_004',
+      'residental_building_005', 'residental_building_006', 'residental_building_007',
+      'residental_building_008', 'residental_building_009', 'residental_building_010',
+    ],
+  },
+  {
+    type: 'park', name: 'Park', zone: 'park',
+    tileW: 1, tileD: 1, baseIncome: 0, baseOperatingCost: 5, maxEmployees: 0,
+    professions: [],
+    constructionCost: 25, glbModels: ['bush_001', 'bush_002', 'bush_003', 'tree_013', 'tree_016', 'tree_017', 'fountain_001', 'fountain_002'],
+  },
+];
 
-export interface BuildingTypeConfig {
-  description: string;
-  preferredCategories: string[];
-  maxLevel: number;
-  icon: string;
+/** Look up a building catalog entry by type */
+export function getBuildingCatalog(type: string): BuildingCatalogEntry | undefined {
+  return BUILDING_CATALOG.find(b => b.type === type);
 }
-
-export interface KingdomConfig {
-  name: string;
-  theme: string;
-  preferredStyle: BuildingStyle | null;
-  tint: string | null;
-  buildingBias: BuildingType[];
-}
-
-export const BUILDING_TYPE_CONFIG: Record<BuildingType, BuildingTypeConfig> = {
-  farm: {
-    description: 'Produces food for the kingdom',
-    preferredCategories: ['production'],
-    maxLevel: 5,
-    icon: 'wheat',
-  },
-  lumberyard: {
-    description: 'Harvests wood from forests',
-    preferredCategories: ['production'],
-    maxLevel: 5,
-    icon: 'axe',
-  },
-  quarry: {
-    description: 'Extracts stone blocks',
-    preferredCategories: ['production'],
-    maxLevel: 5,
-    icon: 'mountain',
-  },
-  iron_mine: {
-    description: 'Mines iron ore deposits',
-    preferredCategories: ['production'],
-    maxLevel: 5,
-    icon: 'pickaxe',
-  },
-  market: {
-    description: 'Trade hub generating gold',
-    preferredCategories: ['production'],
-    maxLevel: 5,
-    icon: 'coins',
-  },
-  barracks: {
-    description: 'Trains infantry units',
-    preferredCategories: ['military'],
-    maxLevel: 3,
-    icon: 'swords',
-  },
-  stable: {
-    description: 'Houses cavalry units',
-    preferredCategories: ['military'],
-    maxLevel: 3,
-    icon: 'horse',
-  },
-  watchtower: {
-    description: 'Early warning defense',
-    preferredCategories: ['defense'],
-    maxLevel: 3,
-    icon: 'eye',
-  },
-  wall: {
-    description: 'Stone fortification',
-    preferredCategories: ['defense'],
-    maxLevel: 3,
-    icon: 'shield',
-  },
-  castle: {
-    description: 'Seat of power',
-    preferredCategories: ['special'],
-    maxLevel: 3,
-    icon: 'crown',
-  },
-  academy: {
-    description: 'Research and upgrades',
-    preferredCategories: ['special'],
-    maxLevel: 3,
-    icon: 'scroll',
-  },
-};
-
-export const KINGDOM_CONFIG: Record<KingdomId, KingdomConfig> = {
-  claude_nation: {
-    name: 'Claude Kingdom',
-    theme: 'Mining & Defense',
-    preferredStyle: 'iron',
-    tint: '#8b2500',
-    buildingBias: ['iron_mine', 'barracks', 'wall'],
-  },
-  openai_empire: {
-    name: 'OpenAI Empire',
-    theme: 'Commerce & Architecture',
-    preferredStyle: 'stone',
-    tint: '#8b8b00',
-    buildingBias: ['market', 'quarry', 'castle'],
-  },
-  gemini_republic: {
-    name: 'Gemini Dominion',
-    theme: 'Agriculture & Nature',
-    preferredStyle: 'wood',
-    tint: '#2d5a27',
-    buildingBias: ['farm', 'lumberyard', 'stable'],
-  },
-  grok_syndicate: {
-    name: 'Grok Guild',
-    theme: 'Scholarship & Cavalry',
-    preferredStyle: 'stone',
-    tint: '#c9a84c',
-    buildingBias: ['academy', 'stable', 'market'],
-  },
-  open_frontier: {
-    name: 'Open Frontier',
-    theme: 'Mining & Endurance',
-    preferredStyle: 'wood',
-    tint: '#4682b4',
-    buildingBias: ['quarry', 'iron_mine', 'watchtower'],
-  },
-};
-
-export const SPRITE_SHEET_PATH = '/assets/buildings/Spritesheet/buildingTiles_sheet.png';
-export const SPRITE_PNG_PATH = '/assets/buildings/PNG/';
-
-export const SPRITE_RANGES: Record<string, (number | [number, number])[]> = {
-  farm: [[1, 4]],
-  lumberyard: [[5, 8]],
-  quarry: [[9, 12]],
-  iron_mine: [[13, 16]],
-  market: [[17, 20]],
-  barracks: [[21, 24]],
-  stable: [[25, 28]],
-  watchtower: [[29, 32]],
-  wall: [[33, 36]],
-  castle: [[37, 40]],
-  academy: [[41, 44]],
-  decoration: [[73, 96]],
-};
-
-export const BUILDING_CONFIGS: Record<string, { defaultStats: Record<string, number> }> = {
-  farm: { defaultStats: { output: 3 } },
-  lumberyard: { defaultStats: { output: 2 } },
-  quarry: { defaultStats: { output: 2 } },
-  iron_mine: { defaultStats: { output: 1 } },
-  market: { defaultStats: { output: 2, capacity: 10 } },
-  barracks: { defaultStats: { capacity: 5 } },
-  stable: { defaultStats: { capacity: 3 } },
-  watchtower: { defaultStats: { defense: 10 } },
-  wall: { defaultStats: { defense: 20 } },
-  castle: { defaultStats: { defense: 50, capacity: 10 } },
-  academy: { defaultStats: { capacity: 3 } },
-};

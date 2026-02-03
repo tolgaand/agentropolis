@@ -1,129 +1,72 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import type { AgentType, AgentSoul, WorldId, CompactParcelDNA } from '@agentropolis/shared';
-import { ECONOMY } from '@agentropolis/shared';
+import mongoose, { Schema, Document, Types } from 'mongoose';
+import type { Profession, CareerPath, Qualification, AgentStats, AgentStatus, AgentNeeds } from '@agentropolis/shared';
 
-export interface AgentDocument extends Document {
+export interface IAgent extends Document {
   name: string;
-  type: AgentType;
-  aiModel: string;                  // Full model name (e.g., "claude-3-opus")
-  worldId: WorldId;                 // Auto-assigned based on aiModel
-  factionId: WorldId;               // V2: Same value as worldId, for faction-based queries
-  description: string;
-  apiKeyHash: string;
-  walletBalance: number;            // Legacy: primary currency balance
-  balances: Map<string, number>;    // Multi-currency: { CLD: 100, GPT: 50, ... }
-  inventory: Map<string, number>;   // Resource inventory: { food: 100, wood: 50, ... }
+  aiModel: string;
+  profession: Profession;
+  career: CareerPath;
+  status: AgentStatus;
+  accountId: Types.ObjectId;
+  cityId: string;
+  stats: AgentStats;
+  needs: AgentNeeds;
+  jailedAtTick: number;
+  employedAt?: Types.ObjectId;
+  homeId?: Types.ObjectId;
+  homeDistrictId?: Types.ObjectId;
   reputation: number;
-  honor: number;                    // Honor score (0-100, starts at 100)
-  parcelId?: string;
-  parcelDNA?: CompactParcelDNA;
-  legacyMessage?: string;
-  registeredAt: Date;
-  soul?: AgentSoul;
-  stats: {
-    totalContributions: number;
-    totalEarned: number;
-    totalSpent: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
+  qualifications: Qualification[];
+  lastActiveTick: number;
+  apiKeyHash: string;
 }
 
-const agentSoulSchema = new Schema(
+const AgentStatsSchema = new Schema<AgentStats>(
   {
-    archetype: { type: String },
-    tone: { type: String },
-    goals: [{ type: String }],
+    workHours: { type: Number, default: 0 },
+    crimeCount: { type: Number, default: 0 },
+    successfulThefts: { type: Number, default: 0 },
+    taxPaidTotal: { type: Number, default: 0 },
+    lastCrimeTick: { type: Number, default: 0 },
   },
   { _id: false }
 );
 
-const agentSchema = new Schema(
+const AgentNeedsSchema = new Schema<AgentNeeds>(
   {
-    name: { type: String, required: true, unique: true, trim: true, maxlength: 50 },
-    type: {
-      type: String,
-      required: true,
-      enum: ['Claude', 'Codex', 'Gemini', 'Grok', 'OpenAI', 'Other'],
-    },
-    aiModel: { type: String, required: true },
-    worldId: {
-      type: String,
-      required: true,
-      enum: ['claude_nation', 'openai_empire', 'gemini_republic', 'grok_syndicate', 'open_frontier'],
-    },
-    factionId: {
-      type: String,
-      required: true,
-      enum: ['claude_nation', 'openai_empire', 'gemini_republic', 'grok_syndicate', 'open_frontier'],
-    },
-    description: { type: String, required: true, maxlength: 500 },
-    apiKeyHash: { type: String, required: true, select: false },
-    walletBalance: { type: Number, required: true, default: ECONOMY.STARTING_GOLD, min: 0 },
-    balances: {
-      type: Map,
-      of: Number,
-      default: () => new Map(),
-    },
-    inventory: {
-      type: Map,
-      of: Number,
-      default: () => new Map(),
-    },
-    reputation: { type: Number, required: true, default: 0, min: 0 },
-    honor: { type: Number, required: true, default: 100, min: 0, max: 100 },
-    parcelId: { type: String },
-    // Parcel DNA — CompactParcelDNA format (~80 bytes)
-    parcelDNA: {
-      v: { type: Number },               // DNA version
-      s: { type: String },               // layoutSeed (16 char hex)
-      t: { type: String },               // theme
-      tr: { type: String },              // terrain type (plains/forest/mountain/mine/river/volcanic)
-      fs: { type: Number },              // fertility stars (1-5)
-      sb: { type: String },              // starting building
-      ro: { type: Number },              // registration order
-    },
-    legacyMessage: { type: String, maxlength: 280 },
-    registeredAt: { type: Date, default: Date.now },
-    soul: { type: agentSoulSchema },
-    stats: {
-      totalContributions: { type: Number, default: 0 },
-      totalEarned: { type: Number, default: 0 },
-      totalSpent: { type: Number, default: 0 },
-    },
+    hunger: { type: Number, default: 80 },
+    rest: { type: Number, default: 80 },
+    fun: { type: Number, default: 50 },
   },
-  {
-    timestamps: true,
-    toJSON: {
-      virtuals: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transform: (_doc: any, ret: any) => {
-        ret.id = String(ret._id);
-        delete ret._id;
-        delete ret.__v;
-        delete ret.apiKeyHash;
-        // Convert balances Map to plain object
-        if (ret.balances instanceof Map) {
-          ret.balances = Object.fromEntries(ret.balances);
-        }
-        // Convert inventory Map to plain object
-        if (ret.inventory instanceof Map) {
-          ret.inventory = Object.fromEntries(ret.inventory);
-        }
-        return ret;
-      },
-    },
-  }
+  { _id: false }
 );
 
-// Indexes for common queries
-agentSchema.index({ type: 1 });
-agentSchema.index({ worldId: 1 });
-agentSchema.index({ factionId: 1 });
-agentSchema.index({ aiModel: 1 });
-agentSchema.index({ reputation: -1 });
-agentSchema.index({ 'stats.totalContributions': -1 });
-agentSchema.index({ createdAt: -1 });
-agentSchema.index({ registeredAt: -1 });
+const AgentSchema = new Schema<IAgent>(
+  {
+    name: { type: String, required: true, unique: true, trim: true },
+    aiModel: { type: String, required: true },
+    profession: { type: String, default: 'worker' },
+    career: { type: String, enum: ['business', 'law'], default: 'business' },
+    status: { type: String, enum: ['active', 'jailed'], default: 'active' },
+    accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
+    cityId: { type: String, required: true },
+    stats: { type: AgentStatsSchema, default: () => ({}) },
+    needs: { type: AgentNeedsSchema, default: () => ({ hunger: 80, rest: 80, fun: 50 }) },
+    jailedAtTick: { type: Number, default: 0 },
+    employedAt: { type: Schema.Types.ObjectId, ref: 'Building', default: null },
+    homeId: { type: Schema.Types.ObjectId, ref: 'Building', default: null },
+    homeDistrictId: { type: Schema.Types.ObjectId, ref: 'District', default: null },
+    reputation: { type: Number, default: 0 },
+    qualifications: [{ type: String }],
+    lastActiveTick: { type: Number, default: 0 },
+    apiKeyHash: { type: String, required: true, select: false },
+  },
+  { timestamps: true }
+);
 
-export const AgentModel = mongoose.model<AgentDocument>('Agent', agentSchema);
+AgentSchema.index({ cityId: 1, profession: 1 });
+AgentSchema.index({ cityId: 1, status: 1 });
+AgentSchema.index({ cityId: 1, employedAt: 1 });
+AgentSchema.index({ cityId: 1, career: 1 });
+
+export const AgentModel = mongoose.model<IAgent>('Agent', AgentSchema);
