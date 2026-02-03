@@ -12,4 +12,5 @@ export const env = {
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   isDev: process.env.NODE_ENV !== 'production',
   JWT_SECRET: process.env.JWT_SECRET ?? devJwtSecret,
+  cityMode: (process.env.CITY_MODE ?? 'real') as 'stub' | 'real' | 'hybrid',
 } as const;

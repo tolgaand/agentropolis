@@ -14,6 +14,14 @@ app.use(cors({ origin: env.corsOrigin }));
 // Body parsing
 app.use(express.json({ limit: '32kb' }));
 
+// Request logging (dev only)
+if (env.isDev) {
+  app.use((req, _res, next) => {
+    console.log(`[${req.method}] ${req.path}`);
+    next();
+  });
+}
+
 // Routes
 app.use('/api', apiRouter);
 
