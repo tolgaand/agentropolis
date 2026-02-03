@@ -19,3 +19,8 @@ AGENTS.md
 .claude/
 development/
 .claude-mem/
+
+# Local config & temp
+.mcp.json
+bug_q.md
+test-results/
