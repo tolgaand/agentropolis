@@ -31,10 +31,6 @@ export {
 } from './socket.context';
 export type { ConnectionStatus } from './socket.context';
 
-// Room management (V1 stub — V2 uses chunk subscriptions)
-export { useRoom, useRoomSubscription } from './useRoom';
-export { ROOMS, parseRoom, isMapRoom } from './socket.rooms';
-
 // Event subscription
 export { useEvent, useEvents } from './useEvent';
 

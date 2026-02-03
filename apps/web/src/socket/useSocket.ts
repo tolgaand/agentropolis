@@ -4,7 +4,6 @@
  * Provides direct access to the typed socket instance for custom event handling.
  * For most use cases, prefer the higher-level hooks:
  * - useEvent() for event subscription
- * - useRoom() for room lifecycle
  * - useSocketContext() for full state access
  *
  * @example
