@@ -46,16 +46,36 @@ export interface CityManagerAction {
   reason: string;
 }
 
+/** Max municipal buildings per agent — prevents infinite building spam */
+const MAX_MUNICIPAL_PER_AGENT = 3;
+/** If more than 30% of municipal buildings are closed, stop building */
+const CLOSED_RATIO_THRESHOLD = 0.3;
+
 export function getCityManagerActions(
   unemploymentRate: number,
   totalAgents: number,
   homelessRate: number,
   crimeRate: number,
   hasPoliceStation: boolean,
+  municipalBuildingCount: number,
+  closedMunicipalCount: number,
 ): CityManagerAction[] {
   const actions: CityManagerAction[] = [];
 
   if (totalAgents === 0) return actions;
+
+  // Hard cap: don't exceed agentCount * MAX_MUNICIPAL_PER_AGENT
+  if (municipalBuildingCount >= totalAgents * MAX_MUNICIPAL_PER_AGENT) {
+    return actions;
+  }
+
+  // Closed ratio guard: too many closed buildings means oversupply
+  if (municipalBuildingCount > 0) {
+    const closedRatio = closedMunicipalCount / municipalBuildingCount;
+    if (closedRatio > CLOSED_RATIO_THRESHOLD) {
+      return actions;
+    }
+  }
 
   if (unemploymentRate > 0.3) {
     actions.push({

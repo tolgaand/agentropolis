@@ -6,8 +6,9 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { ChunkPayloadData } from '@agentropolis/shared/contracts/v2';
+import type { ChunkPayloadData, Placement } from '@agentropolis/shared/contracts/v2';
 import { isBuildable } from '@agentropolis/shared/contracts/v2';
+import { BuildingModel } from '@agentropolis/db';
 import * as repo from './worldRepo';
 import { generateStubChunk } from '../realtime/stubProvider';
 
@@ -241,4 +242,156 @@ export async function buyParcel(
 
   await repo.buyParcel(cityId, worldX, worldZ, ownerId);
   return { ok: true };
+}
+
+// ============ DEBUG PROVENANCE ============
+
+/** Extended placement with override info — only for debug endpoints */
+export interface DebugPlacement extends Placement {
+  overridesStub: boolean;
+}
+
+export interface DebugChunkPayload {
+  chunkX: number;
+  chunkZ: number;
+  placements: DebugPlacement[];
+  stats: {
+    stubCount: number;
+    realCount: number;
+    overrideCount: number;
+  };
+  meta?: ChunkPayloadData['meta'];
+}
+
+/**
+ * Debug version of getChunkPayload — includes overridesStub flag per placement.
+ * Not used in normal socket flow; only for debug REST endpoint.
+ */
+export async function getChunkPayloadDebug(
+  cityId: string,
+  chunkX: number,
+  chunkZ: number,
+  seed: number = 42,
+): Promise<DebugChunkPayload> {
+  const base = generateStubChunk(seed, chunkX, chunkZ);
+  const dbPayload = await repo.getChunkPayload(cityId, chunkX, chunkZ);
+
+  // Build set of tiles that stubs originally occupied
+  const stubTiles = new Set<string>();
+  for (const p of base.placements) {
+    stubTiles.add(`${p.worldX},${p.worldZ}`);
+  }
+
+  // Build set of tiles occupied by real buildings
+  const occupiedTiles = new Set<string>();
+  for (const p of dbPayload.placements) {
+    occupiedTiles.add(`${p.worldX},${p.worldZ}`);
+  }
+
+  // Real placements with overridesStub flag
+  let overrideCount = 0;
+  const realPlacements: DebugPlacement[] = dbPayload.placements.map((p) => {
+    const overrides = stubTiles.has(`${p.worldX},${p.worldZ}`);
+    if (overrides) overrideCount++;
+    return { ...p, overridesStub: overrides };
+  });
+
+  // Stub placements that survived (not overridden)
+  const survivingStubs: DebugPlacement[] = base.placements
+    .filter((p) => !occupiedTiles.has(`${p.worldX},${p.worldZ}`))
+    .map((p) => ({ ...p, overridesStub: false }));
+
+  return {
+    chunkX,
+    chunkZ,
+    placements: [...realPlacements, ...survivingStubs],
+    stats: {
+      stubCount: survivingStubs.length,
+      realCount: realPlacements.length,
+      overrideCount,
+    },
+    meta: {
+      seed,
+      generatedAt: new Date().toISOString(),
+    },
+  };
+}
+
+// ============ CHUNK STATS (aggregate-based) ============
+
+export interface ChunkStats {
+  chunkX: number;
+  chunkZ: number;
+  realBuildingCount: number;
+  activeBuildingCount: number;
+  closedBuildingCount: number;
+  lastTouchedTick: number;
+}
+
+/**
+ * Aggregate-based chunk stats — always accurate, no stale index.
+ * Returns stats for all chunks that have at least one real building.
+ */
+export async function getChunkStatsAll(cityId: string): Promise<ChunkStats[]> {
+  const result = await BuildingModel.aggregate([
+    { $match: { cityId } },
+    {
+      $group: {
+        _id: { chunkX: '$chunkX', chunkZ: '$chunkZ' },
+        realBuildingCount: { $sum: 1 },
+        activeBuildingCount: {
+          $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] },
+        },
+        closedBuildingCount: {
+          $sum: { $cond: [{ $eq: ['$status', 'temporarily_closed'] }, 1, 0] },
+        },
+        lastTouchedTick: { $max: '$lastTouchedTick' },
+      },
+    },
+    { $sort: { '_id.chunkX': 1, '_id.chunkZ': 1 } },
+  ]);
+
+  return result.map((r) => ({
+    chunkX: r._id.chunkX,
+    chunkZ: r._id.chunkZ,
+    realBuildingCount: r.realBuildingCount,
+    activeBuildingCount: r.activeBuildingCount,
+    closedBuildingCount: r.closedBuildingCount,
+    lastTouchedTick: r.lastTouchedTick ?? 0,
+  }));
+}
+
+/** Get stats for a single chunk */
+export async function getChunkStats(
+  cityId: string,
+  chunkX: number,
+  chunkZ: number,
+): Promise<ChunkStats | null> {
+  const result = await BuildingModel.aggregate([
+    { $match: { cityId, chunkX, chunkZ } },
+    {
+      $group: {
+        _id: null,
+        realBuildingCount: { $sum: 1 },
+        activeBuildingCount: {
+          $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] },
+        },
+        closedBuildingCount: {
+          $sum: { $cond: [{ $eq: ['$status', 'temporarily_closed'] }, 1, 0] },
+        },
+        lastTouchedTick: { $max: '$lastTouchedTick' },
+      },
+    },
+  ]);
+
+  if (result.length === 0) return null;
+
+  return {
+    chunkX,
+    chunkZ,
+    realBuildingCount: result[0].realBuildingCount,
+    activeBuildingCount: result[0].activeBuildingCount,
+    closedBuildingCount: result[0].closedBuildingCount,
+    lastTouchedTick: result[0].lastTouchedTick ?? 0,
+  };
 }

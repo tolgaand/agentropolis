@@ -26,6 +26,7 @@ export interface BootstrapResult {
   cityId: string;
   treasuryAccountId: Types.ObjectId;
   npcPoolAccountId: Types.ObjectId;
+  demandBudgetAccountId: Types.ObjectId;
 }
 
 /**
@@ -77,8 +78,24 @@ export async function bootstrapAccounts(cityName = 'Agentropolis'): Promise<Boot
     { upsert: true, new: true },
   );
 
+  // Upsert demand budget account (funded from treasury each season)
+  const demandBudget = await AccountModel.findOneAndUpdate(
+    { ownerType: 'demand_budget', ownerId: cityObjectId },
+    {
+      $setOnInsert: {
+        ownerType: 'demand_budget',
+        ownerId: cityObjectId,
+        balance: 0,
+        reserved: 0,
+        status: 'active',
+      },
+    },
+    { upsert: true, new: true },
+  );
+
   console.log(
-    `[Bootstrap] Treasury: ${treasury._id} (balance=${treasury.balance}), NPC Pool: ${npcPool._id}`,
+    `[Bootstrap] Treasury: ${treasury._id} (balance=${treasury.balance}), ` +
+    `NPC Pool: ${npcPool._id}, Demand Budget: ${demandBudget._id}`,
   );
 
   // Clean up stale collections from previous game iterations
@@ -88,6 +105,7 @@ export async function bootstrapAccounts(cityName = 'Agentropolis'): Promise<Boot
     cityId: CITY_ID,
     treasuryAccountId: treasury._id as Types.ObjectId,
     npcPoolAccountId: npcPool._id as Types.ObjectId,
+    demandBudgetAccountId: demandBudget._id as Types.ObjectId,
   };
 }
 

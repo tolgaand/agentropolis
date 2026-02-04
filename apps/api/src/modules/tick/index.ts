@@ -18,9 +18,18 @@ import { SOCKET_EVENTS, TICK_INTERVAL_MS } from '@agentropolis/shared';
 import { AgentModel, CityModel } from '@agentropolis/db';
 import { runTick } from './tickPipeline';
 import { publishChunk, publishEvent, setLastEconomySnapshot } from '../realtime';
-import { actionQueue, buildAgentSnapshot } from '../agent';
+import { buildAgentSnapshot } from '../agent';
 import { processQueuedActions } from './actionProcessor';
 import { eventStore } from '../realtime/eventStore';
+import { storyRateLimiter } from '../realtime/storyRateLimiter';
+import { summaryTracker } from '../realtime/summaryTracker';
+import { seasonGoalTracker } from '../realtime/seasonGoalTracker';
+import { crimeArcTracker } from '../realtime/arcTracker';
+import { careerArcTracker } from '../realtime/careerArcTracker';
+import { highlightTracker } from '../realtime/highlightTracker';
+import { policyState } from '../realtime/policyState';
+import { seasonReportTracker } from '../realtime/seasonReportTracker';
+import { DecisionOrchestrator, routeDecisions, actionRecorder } from '../decision';
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -50,11 +59,13 @@ export class CityTickRunner {
   private running = false;
   private paused = false;
   private tickNo = 0;
+  private orchestrator = new DecisionOrchestrator();
 
   constructor(
     private cityId: string,
     private treasuryAccountId: Types.ObjectId,
     private npcPoolAccountId: Types.ObjectId,
+    private demandBudgetAccountId: Types.ObjectId,
     private io: TypedServer,
     private intervalMs: number = TICK_INTERVAL_MS,
   ) {
@@ -135,12 +146,29 @@ export class CityTickRunner {
 
       console.log(`[Tick] start tick=${tick}`);
 
-      // Phase 0: Drain and process action queue
-      const queuedActions = actionQueue.drain();
-      if (queuedActions.length > 0) {
-        console.log(`[Tick] Phase 0: processing ${queuedActions.length} queued actions`);
+      // Phase 0a: Decision Window (wait for external AI + resolve fallbacks)
+      const resolved = await this.orchestrator.runDecisionWindow(
+        this.cityId,
+        tick,
+        lastMetrics,
+      );
+
+      // Phase 0b: Validate + fallback retry
+      const validatedActions = await routeDecisions(
+        resolved,
+        this.cityId,
+        tick,
+        lastMetrics,
+      );
+
+      // Record resolved actions for replay/debugging
+      actionRecorder.record(tick, resolved);
+
+      // Phase 0c: Process validated actions (existing processor, unchanged)
+      if (validatedActions.length > 0) {
+        console.log(`[Tick] Phase 0c: processing ${validatedActions.length} validated actions`);
         await processQueuedActions(
-          queuedActions,
+          validatedActions,
           this.cityId,
           tick,
           this.treasuryAccountId,
@@ -149,12 +177,13 @@ export class CityTickRunner {
         );
       }
 
-      // Phase 1-10: existing tick pipeline
+      // Phase 1-10: tick pipeline
       const result = await runTick(
         this.cityId,
         tick,
         this.treasuryAccountId,
         this.npcPoolAccountId,
+        this.demandBudgetAccountId,
       );
 
       const durationMs = Date.now() - startMs;
@@ -186,8 +215,30 @@ export class CityTickRunner {
         closedBusinesses: result.economySnapshot.closedBusinesses,
         outsideWorldCRD: result.economySnapshot.outsideWorldCRD,
         policeCountActive: result.economySnapshot.policeCountActive,
+        demandBudgetBalance: result.economySnapshot.demandBudgetBalance,
+        treasuryBand: result.economySnapshot.treasuryBand,
+        flow: result.economySnapshot.flow,
       };
       lastMetrics = metrics;
+
+      // Produce daily snapshot + weekly summary (S3.6)
+      summaryTracker.onTick(tick, metrics);
+
+      // Season goals: update progress, handle season boundaries (S5.1)
+      seasonGoalTracker.onTick(tick, metrics);
+
+      // Arc trackers: expire stale arcs, emit completed arcs (S5.2, S5.3)
+      crimeArcTracker.onTick(tick);
+      careerArcTracker.onTick(tick);
+
+      // Highlight tracker: track notable events for weekly/season reels (S5.4)
+      highlightTracker.onTick(tick, metrics);
+
+      // Policy vote: resolve/create votes at week boundaries (S5.5)
+      policyState.onTick(tick);
+
+      // Season report: capture start snapshot, produce report at season end (S5.7)
+      seasonReportTracker.onTick(tick, metrics);
 
       // Broadcast city:metrics (primary HUD data source)
       this.io.emit(SOCKET_EVENTS.CITY_METRICS as 'city:metrics', metrics);
@@ -208,10 +259,11 @@ export class CityTickRunner {
         eventsCount: result.events.length,
       });
 
-      // Publish tick summary to event store
+      // Publish tick summary to event store (telemetry — not shown in spectator feed)
       publishEvent('tick', `Tick #${tick} completed`, tick, {
         tags: ['economy'],
         detail: `Agents: ${metrics.agentCount}, Treasury: $${metrics.treasury}, Season: ${metrics.season}`,
+        channel: 'telemetry',
       });
 
       // Broadcast news for significant events + push to event store
@@ -228,11 +280,13 @@ export class CityTickRunner {
           })),
         });
 
-        // Also push significant events to feed event store
+        // Also push significant events to feed event store (story channel)
         for (const e of significantEvents.slice(0, 10)) {
           publishEvent('news', e.description, tick, {
             severity: e.severity >= 3 ? 'major' : 'minor',
             tags: [e.type],
+            channel: 'story',
+            category: e.type,
           });
         }
       }
@@ -263,10 +317,12 @@ export class CityTickRunner {
         console.error('[Tick] Failed to broadcast agents:update:', agentErr);
       }
 
-      // Broadcast events:batch — all feed events produced this tick
-      const tickEvents: FeedEvent[] = eventStore
+      // Broadcast events:batch — rate-limited feed events (S3.5)
+      const rawTickEvents: FeedEvent[] = eventStore
         .recent(50)
         .filter((e) => e.tick === tick);
+
+      const tickEvents = storyRateLimiter.filterTickEvents(tick, rawTickEvents);
 
       if (tickEvents.length > 0) {
         this.io.emit(

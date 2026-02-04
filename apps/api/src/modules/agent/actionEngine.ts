@@ -563,7 +563,10 @@ async function handleCrime(
     status: 'active',
   });
 
-  const baseCatch = Math.min(0.9, BASE_CATCH_CHANCE + policeCount * CATCH_CHANCE_PER_POLICE);
+  // S5.5: Apply police budget policy modifier to catch chance
+  const { getActivePolicy } = await import('../realtime/policyState');
+  const policeMod = getActivePolicy().policeBudgetModifier;
+  const baseCatch = Math.min(0.9, BASE_CATCH_CHANCE + policeCount * CATCH_CHANCE_PER_POLICE + policeMod);
   const repMultiplier = getRepMultiplier(agent.reputation);
   let catchChance = baseCatch * repMultiplier;
 

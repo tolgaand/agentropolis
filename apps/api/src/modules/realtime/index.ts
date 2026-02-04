@@ -465,6 +465,8 @@ function broadcastSideEffects(effects: ActionSideEffects[], tick: number): void 
           severity: 'minor',
           tags: ['agents'],
           detail: `Profession: ${data.agent.profession}`,
+          channel: 'story',
+          category: 'agent',
         });
         break;
       }
@@ -473,6 +475,7 @@ function broadcastSideEffects(effects: ActionSideEffects[], tick: number): void 
         io.emit(SOCKET_EVENTS.AGENT_UPDATED as 'agent:updated', data);
         publishEvent('agent_updated', `${data.agent.name}: ${data.outcome}`, tick, {
           tags: ['agents'],
+          channel: 'telemetry',
         });
         break;
       }
@@ -481,8 +484,10 @@ function broadcastSideEffects(effects: ActionSideEffects[], tick: number): void 
         io.emit(SOCKET_EVENTS.CRIME_COMMITTED as 'crime:committed', data);
         publishEvent('crime', `${data.perpetratorName} robbed ${data.victimName}`, tick, {
           severity: 'minor',
-          tags: ['crime'],
+          tags: ['crime', `agent:${data.perpetratorId}`],
           detail: `Amount: $${data.amount}${data.caught ? ' (caught!)' : ''}`,
+          channel: 'story',
+          category: 'crime',
         });
         break;
       }
@@ -491,8 +496,10 @@ function broadcastSideEffects(effects: ActionSideEffects[], tick: number): void 
         io.emit(SOCKET_EVENTS.CRIME_ARRESTED as 'crime:arrested', data);
         publishEvent('arrest', `${data.agentName} arrested`, tick, {
           severity: 'minor',
-          tags: ['crime'],
+          tags: ['crime', `agent:${data.agentId}`],
           detail: `Fine: $${data.fineAmount}, Jail: ${data.jailTicks} ticks`,
+          channel: 'story',
+          category: 'crime',
         });
         break;
       }
