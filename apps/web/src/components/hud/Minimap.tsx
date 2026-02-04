@@ -3,7 +3,7 @@
  * Dystopian cyberpunk: angular clip-path, neon-cyan accents,
  * crosshair, holographic border glow.
  */
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useRendererRef } from '../../hooks/useRendererRef';
 import { TILES_PER_CHUNK } from '../../lib/map/three/V2Config';
 
@@ -13,6 +13,7 @@ const RENDER_SIZE = 512;
 export function Minimap(): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRendererRef();
+  const [gridLabel, setGridLabel] = useState('(0, 0)');
 
   useEffect(() => {
     let raf = 0;
@@ -32,6 +33,7 @@ export function Minimap(): JSX.Element {
 
         if (moved || frameSkip >= 8) {
           r.renderMinimap(canvas);
+          if (moved) setGridLabel(`(${gc.x}, ${gc.y})`);
           frameSkip = 0;
         } else {
           frameSkip++;
@@ -55,7 +57,7 @@ export function Minimap(): JSX.Element {
     const ny = (e.clientY - rect.top) / rect.height;
 
     const gc = r.getGridCoords();
-    const chunkSpan = 3.6;
+    const chunkSpan = 2.4;
     const dcx = Math.round((nx - 0.5) * chunkSpan);
     const dcz = Math.round((ny - 0.5) * chunkSpan);
 
@@ -93,7 +95,7 @@ export function Minimap(): JSX.Element {
           color: 'var(--neon-cyan)',
           letterSpacing: '0.14em',
           textTransform: 'uppercase',
-          textShadow: '0 0 6px rgba(0,255,255,0.4)',
+          textShadow: '0 0 6px rgba(127, 220, 255,0.4)',
         }}>
           Minimap
         </span>
@@ -106,13 +108,13 @@ export function Minimap(): JSX.Element {
         clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)',
         position: 'relative',
         background: 'var(--bg-void)',
-        boxShadow: '0 0 20px rgba(0,255,255,0.1), 0 4px 24px rgba(0,0,0,0.5)',
+        boxShadow: '0 0 20px rgba(127, 220, 255,0.1), 0 4px 24px rgba(0,0,0,0.5)',
       }}>
         {/* Border */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          border: '1px solid rgba(0,255,255,0.2)',
+          border: '1px solid rgba(127, 220, 255,0.2)',
           clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)',
           pointerEvents: 'none',
           zIndex: 3,
@@ -164,7 +166,7 @@ export function Minimap(): JSX.Element {
           left: 12,
           right: 0,
           height: 2,
-          background: 'linear-gradient(90deg, var(--neon-cyan), rgba(0,255,255,0.15), transparent)',
+          background: 'linear-gradient(90deg, var(--neon-cyan), rgba(127, 220, 255,0.15), transparent)',
           pointerEvents: 'none',
           zIndex: 2,
         }} />
@@ -173,11 +175,23 @@ export function Minimap(): JSX.Element {
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,255,255,0.02) 3px, rgba(0,255,255,0.02) 4px)',
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(127, 220, 255,0.02) 3px, rgba(127, 220, 255,0.02) 4px)',
           pointerEvents: 'none',
           zIndex: 1,
           mixBlendMode: 'screen',
         }} />
+      </div>
+
+      {/* Grid coords label */}
+      <div style={{
+        marginTop: 4,
+        textAlign: 'center',
+        fontSize: 9,
+        fontFamily: 'var(--font-mono)',
+        color: 'rgba(127, 220, 255, 0.5)',
+        letterSpacing: '0.06em',
+      }}>
+        {gridLabel}
       </div>
     </div>
   );

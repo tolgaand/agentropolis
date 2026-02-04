@@ -30,13 +30,13 @@
         --text-muted: #606078;
         --text-dim: #404058;
 
-        /* Neon Accents */
-        --neon-cyan: #00ffff;
-        --neon-magenta: #ff00ff;
-        --neon-yellow: #ffff00;
-        --neon-green: #00ff88;
-        --neon-red: #ff3366;
-        --neon-blue: #00aaff;
+        /* Accents — soft-tech premium (muted neon) */
+        --neon-cyan: #7fdcff;
+        --neon-magenta: #d47dff;
+        --neon-yellow: #f5d062;
+        --neon-green: #5be8a0;
+        --neon-red: #ff6b8a;
+        --neon-blue: #6bb8ff;
 
         /* Status */
         --success: #22c55e;
@@ -58,40 +58,40 @@
         --space-2xl: 3rem;
 
         /* Borders */
-        --border-color: rgba(255, 255, 255, 0.1);
-        --border-glow: rgba(0, 255, 255, 0.3);
+        --border-color: rgba(255, 255, 255, 0.08);
+        --border-glow: rgba(127, 220, 255, 0.2);
 
         /* Effects */
-        --glow-intensity: 0.6;
-        --scanline-opacity: 0.03;
+        --glow-intensity: 0.35;
+        --scanline-opacity: 0.015;
 
-        /* HUD Panel Tokens (compat) */
-        --panel-bg: rgba(5, 5, 10, 0.88);
-        --panel-bg-solid: rgba(5, 5, 10, 0.94);
-        --panel-border: rgba(0, 255, 255, 0.15);
-        --panel-border-hover: rgba(0, 255, 255, 0.3);
-        --panel-blur: 12px;
+        /* HUD Panel Tokens */
+        --panel-bg: rgba(8, 12, 20, 0.82);
+        --panel-bg-solid: rgba(8, 12, 20, 0.92);
+        --panel-border: rgba(127, 220, 255, 0.1);
+        --panel-border-hover: rgba(127, 220, 255, 0.2);
+        --panel-blur: 14px;
         --panel-radius: 4px;
-        --panel-shadow: 0 0 20px rgba(0, 255, 255, 0.1), 0 4px 24px rgba(0, 0, 0, 0.5);
+        --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 
-        /* HUD Signal Colors (compat) */
-        --hud-teal: #00ffff;
-        --hud-teal-dim: rgba(0, 255, 255, 0.12);
-        --hud-brass: #eab308;
-        --hud-brass-dim: rgba(234, 179, 8, 0.12);
-        --hud-red: #ff3366;
-        --hud-red-dim: rgba(255, 51, 102, 0.12);
+        /* HUD Signal Colors */
+        --hud-teal: #7fdcff;
+        --hud-teal-dim: rgba(127, 220, 255, 0.1);
+        --hud-brass: #f5d062;
+        --hud-brass-dim: rgba(245, 208, 98, 0.1);
+        --hud-red: #ff6b8a;
+        --hud-red-dim: rgba(255, 107, 138, 0.1);
         --hud-label: #606078;
         --hud-value: #e8e8f0;
-        --hud-dim: rgba(96, 96, 120, 0.35);
-        --hud-cell-bg: rgba(18, 18, 31, 0.5);
-        --hud-cell-border: rgba(255, 255, 255, 0.06);
+        --hud-dim: rgba(96, 96, 120, 0.3);
+        --hud-cell-bg: rgba(18, 18, 31, 0.4);
+        --hud-cell-border: rgba(255, 255, 255, 0.05);
 
-        /* Legacy compat aliases */
-        --accent-brass: #eab308;
-        --accent-teal: #00ffff;
-        --accent-crimson: #ff3366;
-        --accent-gold: #eab308;
+        /* Compat aliases */
+        --accent-brass: #f5d062;
+        --accent-teal: #7fdcff;
+        --accent-crimson: #ff6b8a;
+        --accent-gold: #f5d062;
       }
 
       * {
@@ -121,7 +121,7 @@
         position: relative;
       }
 
-      /* Scanlines Overlay */
+      /* Scanlines Overlay — barely visible, soft-light blend */
       #root::after {
         content: '';
         position: fixed;
@@ -129,12 +129,14 @@
         background: repeating-linear-gradient(
           0deg,
           transparent,
-          transparent 2px,
-          rgba(0, 255, 255, var(--scanline-opacity)) 2px,
-          rgba(0, 255, 255, var(--scanline-opacity)) 4px
+          transparent 3px,
+          rgba(127, 220, 255, var(--scanline-opacity)) 3px,
+          rgba(127, 220, 255, var(--scanline-opacity)) 4px
         );
         pointer-events: none;
         z-index: 9999;
+        mix-blend-mode: soft-light;
+        opacity: 0.25;
       }
 
       /* Glitch Animation */
@@ -158,10 +160,10 @@
         20%, 24%, 55% { opacity: 0.8; }
       }
 
-      /* Pulse Glow */
+      /* Pulse Glow — subtle */
       @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
-        50% { box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor; }
+        0%, 100% { box-shadow: 0 0 4px currentColor; }
+        50% { box-shadow: 0 0 8px currentColor, 0 0 16px currentColor; }
       }
 
       /* Ticker Scroll */

@@ -1,24 +1,18 @@
 /**
- * HoverCard - Cyberpunk holographic hover display
+ * HoverCardLayer — MicroTooltip (hover) + Inspector (click)
  *
- * - Cut-corner clip-path, scan lines, chromatic aberration
- * - Holo-open animation, text flicker, glitch effects
- * - GLITCH TRANSITION on tile change: content scrambles out then resolves in
- * - Zone-themed hue shifting
- * - Follows mouse position smoothly
- * - Shift+Click pin, Escape unpin
+ * MicroTooltip: tiny single-line label following mouse, pointer-events: none
+ * Inspector: fixed right-side panel, slides in on click, pinnable
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { HoverInfo } from '../../lib/map/three/CityRendererV2';
 import './HoverCard.css';
 
 // ─── Constants ───
-const HOVER_DELAY = 60;
-const HIDE_DELAY = 200;
-const GLITCH_DURATION = 180; // ms for tile-change glitch
-const CARD_W = 360;
-const CARD_H = 320;
-const PAD = 16;
+const SHOW_DELAY = 250;
+const HIDE_DELAY = 150;
+const TOOLTIP_OFFSET_X = 16;
+const TOOLTIP_OFFSET_Y = -8;
 
 // ─── Zone icons ───
 const ZONE_ICONS: Record<string, string> = {
@@ -46,20 +40,28 @@ function humanName(key: string): string {
   return NAMES[key] ?? key.replace(/_\d+$/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// ─── Props ───
+interface HoverCardLayerProps {
+  hover?: HoverInfo | null;
+  selected?: HoverInfo | null;
+}
+
 // ─── Main export ───
-export function HoverCardLayer({ hover }: { hover: HoverInfo | null }): JSX.Element {
-  const [visible, setVisible] = useState(false);
-  const [pinned, setPinned] = useState<HoverInfo | null>(null);
-  const [display, setDisplay] = useState<HoverInfo | null>(null);
-  const [glitching, setGlitching] = useState(false);
+export function HoverCardLayer({ hover = null, selected = null }: HoverCardLayerProps): JSX.Element {
+  // ── MicroTooltip state ──
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipData, setTooltipData] = useState<HoverInfo | null>(null);
   const mousePosRef = useRef({ x: 0, y: 0 });
-  const [posState, setPosState] = useState({ left: 0, top: 0 });
+  const [tooltipPos, setTooltipPos] = useState({ left: 0, top: 0 });
   const showRef = useRef<ReturnType<typeof setTimeout>>();
   const hideRef = useRef<ReturnType<typeof setTimeout>>();
-  const glitchRef = useRef<ReturnType<typeof setTimeout>>();
   const lastTileRef = useRef('');
 
-  // Track mouse position via ref (no re-render), update position via RAF
+  // ── Inspector state ──
+  const [inspected, setInspected] = useState<HoverInfo | null>(null);
+  const [pinned, setPinned] = useState(false);
+
+  // Track mouse for tooltip positioning
   useEffect(() => {
     let raf = 0;
     function onMouseMove(e: MouseEvent) {
@@ -69,15 +71,9 @@ export function HoverCardLayer({ hover }: { hover: HoverInfo | null }): JSX.Elem
     function tick() {
       const mx = mousePosRef.current.x;
       const my = mousePosRef.current.y;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      let left = mx + 24;
-      let top = my - 20;
-      if (left + CARD_W + PAD > vw) left = mx - CARD_W - 24;
-      if (top + CARD_H + PAD > vh) top = my - CARD_H;
-      if (top < PAD) top = PAD;
-      if (left < PAD) left = PAD;
-      setPosState(prev => (prev.left === left && prev.top === top) ? prev : { left, top });
+      const left = mx + TOOLTIP_OFFSET_X;
+      const top = my + TOOLTIP_OFFSET_Y;
+      setTooltipPos(prev => (prev.left === left && prev.top === top) ? prev : { left, top });
       raf = requestAnimationFrame(tick);
     }
     window.addEventListener('mousemove', onMouseMove, { passive: true });
@@ -88,187 +84,281 @@ export function HoverCardLayer({ hover }: { hover: HoverInfo | null }): JSX.Elem
     };
   }, []);
 
-  // Show/hide + glitch transition on tile change
+  // Show/hide tooltip on hover changes
   useEffect(() => {
     if (hover) {
       const tileKey = `${hover.worldX},${hover.worldZ}`;
       clearTimeout(hideRef.current);
 
       if (tileKey === lastTileRef.current) return;
-
       lastTileRef.current = tileKey;
 
-      if (pinned && pinned.worldX === hover.worldX && pinned.worldZ === hover.worldZ) {
-        setVisible(false);
+      // Don't show tooltip if inspecting the same tile
+      if (inspected && inspected.worldX === hover.worldX && inspected.worldZ === hover.worldZ) {
+        setTooltipVisible(false);
         return;
       }
 
       clearTimeout(showRef.current);
-      clearTimeout(glitchRef.current);
-
-      if (visible && display) {
-        // Card already visible, tile changed → glitch content transition (card stays open)
-        setGlitching(true);
-        glitchRef.current = setTimeout(() => {
-          setDisplay(hover);
-          setGlitching(false);
-        }, GLITCH_DURATION);
-      } else {
-        // First show
-        showRef.current = setTimeout(() => {
-          setDisplay(hover);
-          setVisible(true);
-        }, HOVER_DELAY);
-      }
+      showRef.current = setTimeout(() => {
+        setTooltipData(hover);
+        setTooltipVisible(true);
+      }, SHOW_DELAY);
     } else {
       clearTimeout(showRef.current);
-      clearTimeout(glitchRef.current);
       lastTileRef.current = '';
       hideRef.current = setTimeout(() => {
-        setVisible(false);
-        setGlitching(false);
+        setTooltipVisible(false);
       }, HIDE_DELAY);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hover, pinned]);
+  }, [hover, inspected]);
 
-  // Shift+Click pin, Escape unpin
-  const onClickHandler = useCallback((e: MouseEvent) => {
-    if (e.shiftKey && visible && display) {
-      setPinned({ ...display });
-      setVisible(false);
+  // Handle click → open inspector
+  useEffect(() => {
+    if (selected) {
+      // If pinned and clicking the same tile, ignore
+      if (pinned && inspected &&
+          inspected.worldX === selected.worldX && inspected.worldZ === selected.worldZ) {
+        return;
+      }
+      setInspected(selected);
+      setTooltipVisible(false);
+      // If not pinned, auto-close behavior is default
     }
-  }, [visible, display]);
+  }, [selected, pinned, inspected]);
 
-  const onKeyHandler = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') setPinned(null);
+  // Escape to close inspector
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && inspected) {
+        setInspected(null);
+        setPinned(false);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [inspected]);
+
+  const closeInspector = useCallback(() => {
+    setInspected(null);
+    setPinned(false);
   }, []);
 
-  useEffect(() => {
-    window.addEventListener('click', onClickHandler);
-    window.addEventListener('keydown', onKeyHandler);
-    return () => {
-      window.removeEventListener('click', onClickHandler);
-      window.removeEventListener('keydown', onKeyHandler);
-    };
-  }, [onClickHandler, onKeyHandler]);
+  const togglePin = useCallback(() => {
+    setPinned(p => !p);
+  }, []);
 
-  const pinnedPos = pinned
-    ? (() => {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        let left = pinned.screenX + 24;
-        let top = pinned.screenY - 20;
-        if (left + CARD_W + PAD > vw) left = pinned.screenX - CARD_W - 24;
-        if (top + CARD_H + PAD > vh) top = pinned.screenY - CARD_H;
-        if (top < PAD) top = PAD;
-        if (left < PAD) left = PAD;
-        return { left, top };
-      })()
-    : { left: 0, top: 0 };
-
-  const zone = display?.zone?.toLowerCase() ?? '';
-  const cardClass = `hover-card${visible && display ? ' visible' : ''}${glitching ? ' glitching' : ''}`;
+  // Tooltip content — only show for buildings (not empty tiles or roads)
+  const hasBuilding = !!tooltipData?.building;
+  const ttIcon = tooltipData
+    ? (ZONE_ICONS[tooltipData.zone?.toLowerCase()] ?? '\u{1F4CD}')
+    : '';
+  const ttLabel = tooltipData?.building ? humanName(tooltipData.building) : '';
+  const ttZone = tooltipData?.zone ?? '';
+  const showTooltip = tooltipVisible && tooltipData && hasBuilding;
 
   return (
     <>
-      {/* Floating hover card */}
+      {/* MicroTooltip — tiny single-line hover label (buildings only) */}
       <div
-        className={cardClass}
-        data-zone={zone}
-        style={{ left: posState.left, top: posState.top }}
+        className={`micro-tooltip${showTooltip ? ' visible' : ''}`}
+        style={{ left: tooltipPos.left, top: tooltipPos.top }}
       >
-        {display && (
-          <div className="hc-content">
-            <CardContent hover={display} />
-          </div>
-        )}
+        <span className="mt-icon">{ttIcon}</span>
+        {ttLabel}
+        <span className="mt-sep">&middot;</span>
+        {ttZone}
       </div>
 
-      {/* Pinned card */}
-      {pinned && (
-        <div
-          className="hover-card visible pinned"
-          data-zone={pinned.zone?.toLowerCase() ?? ''}
-          style={{ left: pinnedPos.left, top: pinnedPos.top }}
-        >
-          <div className="hc-close" onClick={() => setPinned(null)}>×</div>
-          <div className="hc-content">
-            <CardContent hover={pinned} />
-          </div>
-        </div>
-      )}
+      {/* Inspector — fixed right panel */}
+      <div className={`inspector-panel${inspected ? ' open' : ''}${pinned ? ' pinned' : ''}`}>
+        {inspected && (
+          <InspectorContent
+            info={inspected}
+            pinned={pinned}
+            onTogglePin={togglePin}
+            onClose={closeInspector}
+          />
+        )}
+      </div>
     </>
   );
 }
 
-// ─── Card content ───
-function CardContent({ hover }: { hover: HoverInfo }): JSX.Element {
-  const hasBuilding = !!hover.building;
-  const isRoad = hover.isRoad;
-  const icon = isRoad ? '\u{1F6E3}' : ZONE_ICONS[hover.zone?.toLowerCase()] ?? '\u{1F4CD}';
+// ─── Building Economy Data Cache ───
+interface BuildingEconomy {
+  income: number;
+  operatingCost: number;
+  employeeCount: number;
+  maxEmployees: number;
+  status: string;
+}
+
+const buildingCache = new Map<string, BuildingEconomy>();
+
+// ─── Inspector Content ───
+function InspectorContent({ info, pinned, onTogglePin, onClose }: {
+  info: HoverInfo;
+  pinned: boolean;
+  onTogglePin: () => void;
+  onClose: () => void;
+}): JSX.Element {
+  const hasBuilding = !!info.building;
+  const [economy, setEconomy] = useState<BuildingEconomy | null>(null);
+  const [econLoading, setEconLoading] = useState(false);
+
+  // Fetch building economic data when buildingId changes
+  useEffect(() => {
+    if (!info.buildingId) {
+      setEconomy(null);
+      return;
+    }
+
+    const cached = buildingCache.get(info.buildingId);
+    if (cached) {
+      setEconomy(cached);
+      return;
+    }
+
+    let cancelled = false;
+    setEconLoading(true);
+    fetch(`/api/buildings/${info.buildingId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data) return;
+        const econ: BuildingEconomy = {
+          income: data.income ?? 0,
+          operatingCost: data.operatingCost ?? 0,
+          employeeCount: data.employeeCount ?? 0,
+          maxEmployees: data.maxEmployees ?? 0,
+          status: data.status ?? 'unknown',
+        };
+        buildingCache.set(info.buildingId!, econ);
+        setEconomy(econ);
+      })
+      .catch(() => { /* ignore fetch errors */ })
+      .finally(() => { if (!cancelled) setEconLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [info.buildingId]);
+  const isRoad = info.isRoad;
+  const icon = isRoad ? '\u{1F6E3}' : ZONE_ICONS[info.zone?.toLowerCase()] ?? '\u{1F4CD}';
   const title = hasBuilding
-    ? humanName(hover.building!)
-    : isRoad ? 'Road' : hover.owner ? 'Parcel' : 'Empty Tile';
-  const tileType = hasBuilding ? 'BUILDING' : isRoad ? 'ROAD' : hover.owner ? 'PARCEL' : 'TILE';
-  const subtitle = `${(hover.zone ?? 'unknown').toUpperCase()} // ${tileType}`;
+    ? humanName(info.building!)
+    : isRoad ? 'Road' : info.owner ? 'Parcel' : 'Empty Tile';
+  const tileType = hasBuilding ? 'BUILDING' : isRoad ? 'ROAD' : info.owner ? 'PARCEL' : 'TILE';
+  const subtitle = `${(info.zone ?? 'unknown').toUpperCase()} // ${tileType}`;
+
+  const statusClass = isRoad ? 'road' : info.buildable ? 'buildable' : 'occupied';
+  const statusLabel = isRoad ? 'ROAD' : info.buildable ? 'BUILDABLE' : 'OCCUPIED';
 
   return (
     <>
-      <div className="hc-header">
-        <div className="hc-icon">
-          <span className="hc-icon-text">{icon}</span>
+      <div className="ins-header">
+        <div className="ins-icon">{icon}</div>
+        <div className="ins-title-group">
+          <div className="ins-name">{title}</div>
+          <div className="ins-sub">{subtitle}</div>
         </div>
-        <div className="hc-title-group">
-          <div className="hc-name">{title}</div>
-          <div className="hc-sub">{subtitle}</div>
-        </div>
-        <div className="hc-status">
-          <div className="hc-status-dot" />
-          <div className="hc-status-ring" />
-        </div>
-      </div>
-
-      <div className="hc-stats-grid">
-        <div className="hc-stat-item">
-          <div className="hc-stat-label">District</div>
-          <div className="hc-stat-value">{hover.district}</div>
-        </div>
-        <div className="hc-stat-item">
-          <div className="hc-stat-label">Zone</div>
-          <div className="hc-stat-value">{hover.zone}</div>
-        </div>
-        <div className="hc-stat-item">
-          <div className="hc-stat-label">Block</div>
-          <div className="hc-stat-value">[{hover.worldX}, {hover.worldZ}]</div>
-        </div>
-        <div className="hc-stat-item">
-          <div className="hc-stat-label">Land Price</div>
-          <div className="hc-stat-value">{hover.landPrice} CRD</div>
+        <div className="ins-actions">
+          <button
+            className={`ins-btn${pinned ? ' active' : ''}`}
+            onClick={onTogglePin}
+            title={pinned ? 'Unpin' : 'Pin'}
+          >
+            {pinned ? '\u{1F4CC}' : '\u{1F4CC}'}
+          </button>
+          <button className="ins-btn" onClick={onClose} title="Close (Esc)">
+            \u00D7
+          </button>
         </div>
       </div>
 
-      <div className="hc-zone-badge">
-        <span className="hc-zone-icon">{icon}</span>
-        {hover.district}
+      <div className="ins-stats">
+        <div className="ins-stat">
+          <div className="ins-stat-label">District</div>
+          <div className="ins-stat-value">{info.district}</div>
+        </div>
+        <div className="ins-stat">
+          <div className="ins-stat-label">Zone</div>
+          <div className="ins-stat-value">{info.zone}</div>
+        </div>
+        <div className="ins-stat">
+          <div className="ins-stat-label">Block</div>
+          <div className="ins-stat-value">{Math.abs(info.worldX)}{info.worldX >= 0 ? 'E' : 'W'}, {Math.abs(info.worldZ)}{info.worldZ >= 0 ? 'S' : 'N'}</div>
+        </div>
+        <div className="ins-stat">
+          <div className="ins-stat-label">Land Price</div>
+          <div className="ins-stat-value">{info.landPrice} CRD</div>
+        </div>
       </div>
 
       {hasBuilding && (
-        <div className="hc-demand-section">
-          <div className="hc-demand-label">Demand Index</div>
-          <div className="hc-demand-bar-wrap">
+        <div className="ins-demand">
+          <div className="ins-demand-label">Demand Index</div>
+          <div className="ins-demand-bar">
             <div
-              className="hc-demand-fill"
-              style={{ width: `${Math.min(100, hover.demandIndex * 100)}%` }}
+              className="ins-demand-fill"
+              style={{ width: `${Math.min(100, info.demandIndex * 100)}%` }}
             />
           </div>
         </div>
       )}
 
-      <div className="hc-activity-bar">
-        <div className="hc-activity-dot" />
-        <span className="hc-activity-text">
-          {hover.isRoad ? 'ROAD' : hover.buildable ? 'BUILDABLE' : 'OCCUPIED'} // {hover.owner ?? 'UNOWNED'}
+      {/* Economy section — only for real (DB-backed) buildings */}
+      {info.buildingId && (
+        <div className="ins-stats" style={{ borderTop: '1px solid rgba(127, 220, 255, 0.06)' }}>
+          {econLoading ? (
+            <div className="ins-stat" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
+              <div className="ins-stat-label">Economy</div>
+              <div className="ins-stat-value" style={{ fontSize: 10, opacity: 0.4 }}>Loading...</div>
+            </div>
+          ) : economy ? (
+            <>
+              <div className="ins-stat">
+                <div className="ins-stat-label">Income</div>
+                <div className="ins-stat-value" style={{ color: 'rgba(91, 232, 160, 0.9)' }}>{economy.income} CRD</div>
+              </div>
+              <div className="ins-stat">
+                <div className="ins-stat-label">Expenses</div>
+                <div className="ins-stat-value" style={{ color: 'rgba(255, 107, 138, 0.9)' }}>{economy.operatingCost} CRD</div>
+              </div>
+              <div className="ins-stat">
+                <div className="ins-stat-label">Staff</div>
+                <div className="ins-stat-value">{economy.employeeCount}/{economy.maxEmployees}</div>
+              </div>
+              <div className="ins-stat">
+                <div className="ins-stat-label">Status</div>
+                <div className="ins-stat-value" style={{
+                  color: economy.status === 'active' ? 'rgba(91, 232, 160, 0.9)' : 'rgba(255, 107, 138, 0.9)',
+                  textTransform: 'uppercase',
+                  fontSize: 11,
+                }}>{economy.status}</div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* Procedural label for non-DB buildings */}
+      {hasBuilding && !info.buildingId && (
+        <div style={{
+          padding: '6px 16px',
+          borderTop: '1px solid rgba(127, 220, 255, 0.06)',
+          fontSize: 9,
+          fontFamily: 'var(--font-mono)',
+          color: 'rgba(255, 255, 255, 0.3)',
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}>
+          Procedural
+        </div>
+      )}
+
+      <div className="ins-footer">
+        <div className={`ins-status-dot ${statusClass}`} />
+        <span className="ins-status-text">
+          {statusLabel} {info.owner ? `// ${info.owner}` : '// UNOWNED'}
         </span>
       </div>
     </>

@@ -1,36 +1,38 @@
 /**
- * DevOverlay - Ctrl+D / Cmd+D toggleable developer tools.
- * Only renders when isDevMode() is true. Signal-Negative theme.
+ * DevOverlay — Developer tools panel.
+ * Visible when viewMode === 'dev'. Toggled via TAB key (handled by useViewMode).
+ * Ctrl+D within dev mode toggles individual panel visibility.
  */
 import { useState, useEffect } from 'react';
-import { isDevMode } from '../../utils/devMode';
 import { TileInspector } from './TileInspector';
 import { DebugCommands } from './DebugCommands';
 import { PerfStats } from './PerfStats';
 import type { HoverInfo } from '../../lib/map/three/CityRendererV2';
+import type { ViewMode } from '../../hooks/useViewMode';
 
 interface DevOverlayProps {
   hover: HoverInfo | null;
+  viewMode?: ViewMode;
 }
 
-export function DevOverlay({ hover }: DevOverlayProps): JSX.Element | null {
-  const [visible, setVisible] = useState(true);
-  const [devMode] = useState(() => isDevMode());
+export function DevOverlay({ hover, viewMode = 'spectator' }: DevOverlayProps): JSX.Element | null {
+  const [panelsVisible, setPanelsVisible] = useState(true);
 
+  // Ctrl+D toggles individual panels within dev mode
   useEffect(() => {
-    if (!devMode) return;
+    if (viewMode !== 'dev') return;
 
     function onKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
-        setVisible(v => !v);
+        setPanelsVisible(v => !v);
       }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [devMode]);
+  }, [viewMode]);
 
-  if (!devMode || !visible) return null;
+  if (viewMode !== 'dev') return null;
 
   return (
     <div style={{
@@ -39,15 +41,15 @@ export function DevOverlay({ hover }: DevOverlayProps): JSX.Element | null {
       pointerEvents: 'none',
       zIndex: 30,
     }}>
-      {/* DEV stamp — top center */}
+      {/* DEV badge — top center */}
       <div style={{
         position: 'absolute',
         top: 6,
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'var(--hud-teal-dim)',
-        border: '1px solid rgba(24,183,161,0.2)',
-        color: 'var(--hud-teal)',
+        background: 'rgba(127, 220, 255, 0.08)',
+        border: '1px solid rgba(127, 220, 255, 0.15)',
+        color: 'rgba(127, 220, 255, 0.7)',
         padding: '2px 10px',
         fontFamily: 'var(--font-mono)',
         fontSize: 9,
@@ -57,9 +59,13 @@ export function DevOverlay({ hover }: DevOverlayProps): JSX.Element | null {
       }}>
         DEV
       </div>
-      <TileInspector hover={hover} />
-      <DebugCommands />
-      <PerfStats />
+      {panelsVisible && (
+        <>
+          <TileInspector hover={hover} />
+          <DebugCommands />
+          <PerfStats />
+        </>
+      )}
     </div>
   );
 }

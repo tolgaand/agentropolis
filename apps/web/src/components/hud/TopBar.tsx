@@ -14,13 +14,14 @@ import {
   useSpectatorCount,
 } from '../../socket/socket.context';
 import type { ConnectionStatus } from '../../socket/socket.context';
+import { formatGameTime } from '../../utils/gameTime';
 
 type DisplayMode = 'offline' | 'stub' | 'real';
 
 const MODE_STYLE: Record<DisplayMode, { label: string; color: string; bg: string; glow: string }> = {
-  offline: { label: 'OFFLINE', color: 'var(--text-muted)',  bg: 'rgba(96,96,120,0.10)', glow: 'none' },
-  stub:    { label: 'STUB',    color: 'var(--warning)',     bg: 'rgba(234,179,8,0.10)',  glow: '0 0 8px rgba(234,179,8,0.3)' },
-  real:    { label: 'LIVE',    color: 'var(--neon-cyan)',   bg: 'rgba(0,255,255,0.08)',  glow: '0 0 8px rgba(0,255,255,0.4)' },
+  offline: { label: 'OFFLINE', color: 'var(--text-muted)',  bg: 'rgba(96,96,120,0.08)', glow: 'none' },
+  stub:    { label: 'STUB',    color: 'var(--warning)',     bg: 'rgba(245,208,98,0.08)',  glow: 'none' },
+  real:    { label: 'LIVE',    color: 'var(--neon-cyan)',   bg: 'rgba(127,220,255,0.06)',  glow: 'none' },
 };
 
 function getDisplayMode(connectionStatus: ConnectionStatus, cityMode?: string): DisplayMode {
@@ -70,78 +71,65 @@ export function TopBar(): JSX.Element {
       pointerEvents: 'auto',
       zIndex: 20,
     }}>
-      {/* Bottom neon accent line */}
+      {/* Bottom accent line — subtle */}
       <div style={{
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        height: 2,
+        height: 1,
         background: tickPulse
-          ? 'linear-gradient(90deg, var(--neon-cyan), rgba(0,255,255,0.6), var(--neon-cyan))'
-          : 'linear-gradient(90deg, var(--neon-cyan), rgba(0,255,255,0.15), transparent 60%)',
-        opacity: tickPulse ? 1 : 0.8,
-        transition: 'all 0.3s ease',
-      }} />
-
-      {/* Scan line overlay */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.02) 2px, rgba(0,255,255,0.02) 4px)',
-        pointerEvents: 'none',
+          ? 'linear-gradient(90deg, rgba(127,220,255,0.4), rgba(127,220,255,0.15), transparent 70%)'
+          : 'linear-gradient(90deg, rgba(127,220,255,0.2), rgba(127,220,255,0.06), transparent 50%)',
+        transition: 'all 0.5s ease',
       }} />
 
       {/* Left: Logo + mode badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        {/* Neon accent tick */}
+        {/* Accent bar */}
         <div style={{
-          width: 3, height: 18,
+          width: 2, height: 16,
           background: 'var(--neon-cyan)',
-          boxShadow: '0 0 8px var(--neon-cyan)',
+          opacity: 0.6,
           flexShrink: 0,
         }} />
 
         <span style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 15,
-          fontWeight: 700,
-          color: '#fff',
-          letterSpacing: '0.18em',
+          fontSize: 14,
+          fontWeight: 600,
+          color: 'rgba(255, 255, 255, 0.92)',
+          letterSpacing: '0.14em',
           textTransform: 'uppercase',
-          textShadow: '0 0 10px rgba(0,255,255,0.4), 0 0 20px rgba(0,255,255,0.2)',
         }}>
           AGENTROPOLIS
         </span>
 
-        {/* Mode badge - angular clip */}
+        {/* Mode badge */}
         <span style={{
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: 600,
           fontFamily: 'var(--font-mono)',
           color: ms.color,
           background: ms.bg,
-          padding: '3px 10px',
+          padding: '2px 8px',
           border: `1px solid ${ms.color}`,
-          borderRadius: 0,
-          clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))',
-          letterSpacing: '0.10em',
-          boxShadow: ms.glow,
-          textShadow: `0 0 6px ${ms.color}`,
+          borderRadius: 2,
+          letterSpacing: '0.08em',
+          opacity: 0.8,
         }}>
           {ms.label}
         </span>
 
-        {/* Season badge (from metrics) */}
-        {metrics?.season && (
+        {/* Agent count (from metrics) */}
+        {metrics && (
           <span style={{
             fontSize: 8,
             fontFamily: 'var(--font-mono)',
-            color: 'var(--text-muted)',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
+            color: 'rgba(255, 255, 255, 0.35)',
+            letterSpacing: '0.06em',
           }}>
-            {metrics.season}
+            {metrics.agentCount} agents
           </span>
         )}
       </div>
@@ -155,39 +143,37 @@ export function TopBar(): JSX.Element {
           fontFamily: 'var(--font-mono)',
           fontSize: 9,
         }}>
-          <MetricChip label="AGT" value={metrics.agentCount} color="var(--neon-magenta)" />
-          <MetricChip label="TRS" value={`$${metrics.treasury}`} color="var(--neon-cyan)" />
-          <MetricChip label="UMP" value={`${Math.round(metrics.unemploymentRate * 100)}%`} color="var(--warning)" />
-          <MetricChip label="CRM" value={`${Math.round(metrics.crimeRateLast10 * 100)}%`} color="var(--neon-red)" />
+          <MetricChip label="Treasury" value={`$${formatTreasury(metrics.treasury)}`} color="var(--neon-cyan)" />
+          <MetricChip label="Unemployed" value={`${Math.round(metrics.unemploymentRate * 100)}%`} color="var(--warning)" />
+          <MetricChip label="Needs" value={`${Math.round((metrics.avgNeeds.hunger + metrics.avgNeeds.rest + metrics.avgNeeds.fun) / 3)}`} color="var(--neon-magenta)" />
+          <MetricChip label="Crime" value={`${Math.round(metrics.crimeRateLast10 * 100)}%`} color="var(--neon-red)" />
+          <MetricChip
+            label="Business"
+            value={`${metrics.openBusinesses + metrics.closedBusinesses > 0 ? Math.round((metrics.openBusinesses / (metrics.openBusinesses + metrics.closedBusinesses)) * 100) : 100}%`}
+            color="var(--success)"
+          />
         </div>
       )}
 
       {/* Right: Status cluster */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-        {/* Tick counter */}
+        {/* Game time — human-readable */}
         {currentTick > 0 && (
           <div style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: 11,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
           }}>
             <span style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 600,
-              color: 'var(--text-muted)',
-              letterSpacing: '0.10em',
-            }}>TICK</span>
-            <span style={{
-              color: tickPulse ? '#fff' : 'var(--neon-cyan)',
-              fontWeight: 600,
-              fontVariantNumeric: 'tabular-nums',
-              textShadow: tickPulse
-                ? '0 0 12px var(--neon-cyan), 0 0 20px rgba(0,255,255,0.6)'
-                : '0 0 6px rgba(0,255,255,0.5)',
-              transition: 'all 0.3s ease',
-            }}>{currentTick}</span>
+              color: tickPulse ? '#fff' : 'rgba(255, 255, 255, 0.85)',
+              transition: 'color 0.3s ease',
+            }}>
+              {formatGameTime(currentTick, metrics?.season)}
+            </span>
+            {/* T{tick} omitted — debug info not for spectators */}
           </div>
         )}
 
@@ -213,7 +199,7 @@ export function TopBar(): JSX.Element {
             borderRadius: '50%',
             background: isConnected ? 'var(--success)' : mode === 'offline' ? 'var(--text-muted)' : 'var(--neon-red)',
             boxShadow: isConnected
-              ? '0 0 8px var(--success), 0 0 16px rgba(34,197,94,0.3)'
+              ? '0 0 4px var(--success)'
               : 'none',
             animation: isConnected ? 'status-pulse 2s ease-in-out infinite' : 'none',
           }} />
@@ -234,13 +220,17 @@ export function TopBar(): JSX.Element {
 function MetricChip({ label, value, color }: { label: string; value: string | number; color: string }): JSX.Element {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <span style={{ color: 'var(--text-muted)', letterSpacing: '0.06em' }}>{label}</span>
+      <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em', fontSize: 8 }}>{label}</span>
       <span style={{
         color,
         fontWeight: 600,
         fontVariantNumeric: 'tabular-nums',
-        textShadow: `0 0 4px ${color}`,
       }}>{value}</span>
     </div>
   );
+}
+
+function formatTreasury(amount: number): string {
+  if (amount >= 10000) return `${(amount / 1000).toFixed(1)}K`;
+  return String(amount);
 }

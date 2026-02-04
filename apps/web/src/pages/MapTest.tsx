@@ -19,6 +19,7 @@ import { chunkSeed, getWorldChunkZone } from '../lib/map/three/V2Districts';
 import { RendererProvider } from '../hooks/useRendererRef';
 import { GameHUD } from '../components/hud/GameHUD';
 import { DevOverlay } from '../components/dev/DevOverlay';
+import { useViewMode } from '../hooks/useViewMode';
 
 /** 1x1 building keys for massPlace */
 const SMALL_BUILDING_KEYS = Object.entries(ASSET_REGISTRY)
@@ -29,9 +30,15 @@ export default function MapTest(): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null!);
   const rendererRef = useRef<CityRendererV2 | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
+  const [selected, setSelected] = useState<HoverInfo | null>(null);
+  const viewMode = useViewMode();
 
   const onHover = useCallback((h: HoverInfo | null) => {
     setHover(h);
+  }, []);
+
+  const onClick = useCallback((h: HoverInfo) => {
+    setSelected(h);
   }, []);
 
   useEffect(() => {
@@ -842,7 +849,7 @@ export default function MapTest(): JSX.Element {
     };
     win.clearOverrides = () => renderer.clearOverrides();
 
-    renderer.init(container, { onHover }).then(async () => {
+    renderer.init(container, { onHover, onClick }).then(async () => {
       await renderer.buildTestParcel();
     }).catch((err) => {
       console.error(err);
@@ -852,14 +859,14 @@ export default function MapTest(): JSX.Element {
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, [onHover]);
+  }, [onHover, onClick]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       <RendererProvider value={rendererRef}>
-        <GameHUD hover={hover} />
-        <DevOverlay hover={hover} />
+        <GameHUD hover={hover} selected={selected} viewMode={viewMode} />
+        <DevOverlay hover={hover} viewMode={viewMode} />
       </RendererProvider>
     </div>
   );

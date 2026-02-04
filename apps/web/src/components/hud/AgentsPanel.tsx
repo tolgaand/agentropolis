@@ -13,13 +13,9 @@ export function AgentsPanel(): JSX.Element {
 
   return (
     <div style={{
-      position: 'absolute',
-      top: 58,
-      right: 12,
-      width: collapsed ? 36 : 260,
+      width: collapsed ? 36 : 220,
       transition: 'width 0.25s ease',
       pointerEvents: 'auto',
-      zIndex: 15,
     }}>
       {/* Header */}
       <div
@@ -34,9 +30,9 @@ export function AgentsPanel(): JSX.Element {
           WebkitBackdropFilter: 'blur(12px)',
           cursor: 'pointer',
           userSelect: 'none',
-          border: '1px solid rgba(0, 255, 255, 0.15)',
+          border: '1px solid rgba(127, 220, 255, 0.15)',
           borderBottom: collapsed ? undefined : 'none',
-          boxShadow: '0 0 20px rgba(0, 255, 255, 0.08), 0 4px 24px rgba(0,0,0,0.5)',
+          boxShadow: '0 0 20px rgba(127, 220, 255, 0.08), 0 4px 24px rgba(0,0,0,0.5)',
           position: 'relative',
           clipPath: collapsed
             ? 'polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px)'
@@ -104,7 +100,7 @@ export function AgentsPanel(): JSX.Element {
           background: 'rgba(5, 5, 10, 0.88)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid rgba(0, 255, 255, 0.15)',
+          border: '1px solid rgba(127, 220, 255, 0.15)',
           borderTop: 'none',
           overflow: 'hidden',
           boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
@@ -306,7 +302,7 @@ function AgentSlotGhost({ delay }: { delay: number }): JSX.Element {
       gap: 10,
       padding: '5px 4px',
       opacity: 0.08 + delay * 0.02,
-      background: delay % 2 === 0 ? 'rgba(0,255,255,0.02)' : 'transparent',
+      background: delay % 2 === 0 ? 'rgba(127, 220, 255,0.02)' : 'transparent',
     }}>
       {/* Avatar — cut corner */}
       <div style={{
