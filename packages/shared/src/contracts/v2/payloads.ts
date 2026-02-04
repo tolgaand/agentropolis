@@ -259,7 +259,179 @@ export interface CrimeArrestedPayload {
   tick: number;
 }
 
+// ============ HUD METRICS V1 (S4.1) ============
+
+/** Compact 5-metric HUD for spectators — derived from CityMetricsPayload */
+export interface HudMetricsV1 {
+  tick: number;
+  treasury: number;
+  unemploymentRate: number;
+  avgNeeds: { hunger: number; rest: number; fun: number };
+  crimeRateLast10: number;
+  activeBuildingsPct: number; // openBusinesses / (openBusinesses + closedBusinesses)
+  treasuryBand: 'crisis' | 'normal' | 'boom';
+  season: string;
+}
+
+/** Extract HudMetricsV1 from a full CityMetricsPayload */
+export function toHudMetrics(m: CityMetricsPayload): HudMetricsV1 {
+  const total = m.openBusinesses + m.closedBusinesses;
+  return {
+    tick: m.tick,
+    treasury: m.treasury,
+    unemploymentRate: m.unemploymentRate,
+    avgNeeds: m.avgNeeds,
+    crimeRateLast10: m.crimeRateLast10,
+    activeBuildingsPct: total > 0 ? Math.round((m.openBusinesses / total) * 100) : 100,
+    treasuryBand: m.treasuryBand,
+    season: m.season,
+  };
+}
+
+// ============ SEASON GOALS (S5.1) ============
+
+/** A single season goal with progress tracking */
+export interface SeasonGoal {
+  id: string;
+  label: string;              // e.g. "Reduce unemployment below 20%"
+  metric: 'unemploymentRate' | 'openBusinesses' | 'crimeRateLast10' | 'treasury';
+  direction: 'below' | 'above' | 'increase' | 'decrease';
+  target: number;             // target value
+  startValue: number;         // value at season start
+  currentValue: number;       // latest value
+  progress: number;           // 0.0 → 1.0
+  completed: boolean;
+}
+
+/** Season goals state broadcast to spectators */
+export interface SeasonGoalsPayload {
+  season: string;
+  seasonTick: number;         // tick when season started
+  goals: SeasonGoal[];
+}
+
+/** Season outcome event data */
+export interface SeasonOutcomeData {
+  season: string;
+  goals: Array<SeasonGoal & { outcome: 'success' | 'failure' }>;
+  successCount: number;
+  totalCount: number;
+}
+
+// ============ ARC STORY CARDS (S5.2, S5.3) ============
+
+/** A completed story arc rendered as a single feed card */
+export interface ArcCard {
+  arcId: string;
+  arcType: 'crime' | 'career';
+  agentId: string;
+  agentName: string;
+  headline: string;
+  steps: string[];            // ordered event descriptions
+  outcome: string;            // final result summary
+  startTick: number;
+  endTick: number;
+  severity: NewsSeverity;
+}
+
+/** Character card — agent profile snapshot for story context */
+export interface CharacterCard {
+  agentId: string;
+  agentName: string;
+  profession: string;
+  reputation: number;
+  balance: number;
+  weekBehavior: {
+    workCount: number;
+    eatCount: number;
+    sleepCount: number;
+    relaxCount: number;
+    crimeCount: number;
+  };
+  careerHighlight?: string;   // e.g. "Promoted to employee"
+}
+
+// ============ HIGHLIGHT REEL (S5.4) ============
+
+/** A single highlight moment */
+export interface HighlightMoment {
+  id: string;
+  category: 'money' | 'crime' | 'building' | 'band_change' | 'agent';
+  headline: string;
+  detail?: string;
+  tick: number;
+  severity: NewsSeverity;
+}
+
+/** Weekly or season highlight reel */
+export interface HighlightReelPayload {
+  period: 'weekly' | 'season';
+  weekNumber?: number;
+  season?: string;
+  moments: HighlightMoment[];
+}
+
+// ============ POLICY VOTE (S5.5) ============
+
+/** Policy option for spectator voting */
+export type PolicyCategory = 'tax_rate' | 'police_budget' | 'park_investment';
+
+export interface PolicyOption {
+  id: string;
+  category: PolicyCategory;
+  label: string;              // e.g. "Increase tax rate"
+  description: string;
+  modifier: number;           // e.g. +0.05 = +5%
+}
+
+/** Active policy vote state */
+export interface PolicyVotePayload {
+  weekNumber: number;
+  options: PolicyOption[];
+  voteCounts: Record<string, number>;  // optionId → count
+  totalVotes: number;
+  deadline: string;           // ISO timestamp
+  resolved: boolean;
+  winner?: PolicyOption;
+}
+
+/** Current active policy modifiers */
+export interface ActivePolicyModifiers {
+  taxRateModifier: number;    // ±0.05 max
+  policeBudgetModifier: number;
+  parkInvestmentModifier: number;
+}
+
+// ============ SEASON REPORT (S5.7) ============
+
+/** End-of-season report data */
+export interface SeasonReportPayload {
+  season: string;
+  tickRange: { start: number; end: number };
+  metricsStart: {
+    treasury: number;
+    unemploymentRate: number;
+    crimeRateLast10: number;
+    openBusinesses: number;
+    agentCount: number;
+  };
+  metricsEnd: {
+    treasury: number;
+    unemploymentRate: number;
+    crimeRateLast10: number;
+    openBusinesses: number;
+    agentCount: number;
+  };
+  goals: SeasonOutcomeData;
+  topStories: Array<{ headline: string; type: string; severity: string; tick: number }>;
+  highlightReel: HighlightMoment[];
+  policyHistory: Array<{ weekNumber: number; winner: PolicyOption; effect: string }>;
+}
+
 // ============ SPECTATOR FEED ============
+
+/** Feed channel: story (spectator-facing) or telemetry (developer/debug) */
+export type FeedChannel = 'story' | 'telemetry';
 
 /** Feed event type for CityPulse unified feed */
 export type FeedEventType =
@@ -269,7 +441,16 @@ export type FeedEventType =
   | 'crime'
   | 'arrest'
   | 'promotion'
-  | 'tick';
+  | 'tick'
+  | 'daily_snapshot'
+  | 'weekly_summary'
+  | 'crime_arc'
+  | 'career_arc'
+  | 'season_goals'
+  | 'season_outcome'
+  | 'highlight_reel'
+  | 'policy_vote'
+  | 'policy_result';
 
 /** Unified feed event (all event types normalized for CityPulse) */
 export interface FeedEvent {
@@ -281,6 +462,10 @@ export interface FeedEvent {
   tick: number;
   ts: string;              // ISO timestamp
   tags: string[];          // filter tags: 'economy','crime','agents','buildings'
+  /** Feed channel — 'story' for spectator-facing, 'telemetry' for debug. Defaults to 'telemetry' if absent. */
+  channel?: FeedChannel;
+  /** News category for template rendering (S4.3) */
+  category?: string;
 }
 
 /** Sent on connect: full spectator bootstrap */
@@ -333,4 +518,51 @@ export interface CityMetricsPayload {
   closedBusinesses: number;
   outsideWorldCRD: number;
   policeCountActive: number;
+  // Economy v2: closed-loop metrics
+  demandBudgetBalance: number;
+  treasuryBand: 'crisis' | 'normal' | 'boom';
+  flow: {
+    mintedThisTick: number;
+    sunkThisTick: number;
+    wagesPaid: number;
+    taxCollected: number;
+    npcSpendingPaid: number;
+    importFees: number;
+    livingExpensesCollected: number;
+    operatingCostsSunk: number;
+    demandBudgetAllocated: number;
+  };
+}
+
+// ============ PACING: DAILY + WEEKLY SUMMARIES (S3.6) ============
+
+/** Daily snapshot — compact metrics for quick glance (published every tick) */
+export interface DailySnapshotData {
+  tick: number;
+  treasury: number;
+  unemploymentRate: number;
+  avgNeeds: { hunger: number; rest: number; fun: number };
+  crimeRateLast10: number;
+  openBusinesses: number;
+}
+
+/** Weekly summary — deltas + top events for trend visibility (published every WEEK_TICKS) */
+export interface WeeklySummaryData {
+  weekNumber: number;
+  tickRange: { start: number; end: number };
+  deltas: {
+    treasury: number;
+    moneySupply: number;
+    unemploymentRate: number;
+    crimeRateLast10: number;
+    openBusinesses: number;
+    agentCount: number;
+  };
+  topEvents: Array<{
+    headline: string;
+    type: string;
+    severity: string;
+  }>;
+  season: string;
+  treasuryBand: 'crisis' | 'normal' | 'boom';
 }

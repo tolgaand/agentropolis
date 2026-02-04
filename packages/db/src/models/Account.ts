@@ -13,7 +13,7 @@ export interface IAccount extends Document {
 
 const AccountSchema = new Schema<IAccount>(
   {
-    ownerType: { type: String, enum: ['agent', 'city', 'building', 'district', 'npc_pool'], required: true },
+    ownerType: { type: String, enum: ['agent', 'city', 'building', 'district', 'npc_pool', 'demand_budget'], required: true },
     ownerId: { type: Schema.Types.ObjectId, required: true },
     currency: { type: String, default: CURRENCY },
     balance: { type: Number, default: 0 },

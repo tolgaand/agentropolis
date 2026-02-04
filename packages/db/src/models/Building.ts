@@ -27,6 +27,10 @@ export interface IBuilding extends Document {
   employees: Types.ObjectId[];
   glbModel: string;
   lastPayoutTick: number;
+  /** Accrued upkeep cost — accumulated each tick, settled weekly (S3.2) */
+  accruedUpkeep: number;
+  /** Tick when this building was last economically touched (create/status change/upkeep) */
+  lastTouchedTick: number;
 }
 
 const BuildingSchema = new Schema<IBuilding>(
@@ -53,6 +57,8 @@ const BuildingSchema = new Schema<IBuilding>(
     employees: [{ type: Schema.Types.ObjectId, ref: 'Agent' }],
     glbModel: { type: String, default: '' },
     lastPayoutTick: { type: Number, default: 0 },
+    accruedUpkeep: { type: Number, default: 0 },
+    lastTouchedTick: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

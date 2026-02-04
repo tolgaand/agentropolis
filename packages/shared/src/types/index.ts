@@ -47,4 +47,29 @@ export {
   SOCKET_EVENTS,
   type ServerToClientEvents,
   type ClientToServerEvents,
+  // pacing summaries (S3.6)
+  type DailySnapshotData,
+  type WeeklySummaryData,
+  // spectator HUD (S4.1)
+  type HudMetricsV1,
+  toHudMetrics,
+  // feed channels (S4.2)
+  type FeedChannel,
+  // season goals (S5.1)
+  type SeasonGoal,
+  type SeasonGoalsPayload,
+  type SeasonOutcomeData,
+  // arc cards (S5.2, S5.3)
+  type ArcCard,
+  type CharacterCard,
+  // highlight reel (S5.4)
+  type HighlightMoment,
+  type HighlightReelPayload,
+  // policy vote (S5.5)
+  type PolicyCategory,
+  type PolicyOption,
+  type PolicyVotePayload,
+  type ActivePolicyModifiers,
+  // season report (S5.7)
+  type SeasonReportPayload,
 } from '../contracts/v2/index';
