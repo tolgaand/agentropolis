@@ -3,8 +3,9 @@
  */
 
 import { Router } from 'express';
-import { BuildingModel } from '@agentropolis/db';
+import { BuildingModel, CityModel } from '@agentropolis/db';
 import { CITY_ID } from '@agentropolis/shared';
+import * as worldService from '../modules/world/worldService';
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -48,6 +49,36 @@ router.get('/', async (req, res) => {
   }
 
   res.json({ buildings: result, count: result.length });
+});
+
+/**
+ * GET /api/buildings/chunks/stats
+ * Aggregate-based chunk statistics — real building count, active/closed, lastTouchedTick.
+ * Used for economic activity heatmap overlay.
+ */
+router.get('/chunks/stats', async (_req, res) => {
+  const stats = await worldService.getChunkStatsAll(CITY_ID);
+  res.json({ chunks: stats, count: stats.length });
+});
+
+/**
+ * GET /api/buildings/chunks/:chunkX/:chunkZ/debug
+ * Debug provenance: shows stub vs real, overridesStub flag per placement.
+ * Opt-in endpoint — not in normal payload flow.
+ */
+router.get('/chunks/:chunkX/:chunkZ/debug', async (req, res) => {
+  const chunkX = Number(req.params.chunkX);
+  const chunkZ = Number(req.params.chunkZ);
+  if (isNaN(chunkX) || isNaN(chunkZ)) {
+    res.status(400).json({ error: 'Invalid chunk coordinates' });
+    return;
+  }
+
+  const city = await CityModel.findOne({ cityId: CITY_ID }).lean();
+  const seed = city?.worldSeed ?? 42;
+
+  const payload = await worldService.getChunkPayloadDebug(CITY_ID, chunkX, chunkZ, seed);
+  res.json(payload);
 });
 
 /**

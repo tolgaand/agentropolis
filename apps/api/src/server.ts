@@ -29,6 +29,7 @@ async function bootstrap(): Promise<void> {
     accounts.cityId,
     accounts.treasuryAccountId,
     accounts.npcPoolAccountId,
+    accounts.demandBudgetAccountId,
     getIO(),
   );
   tickRunner.start();

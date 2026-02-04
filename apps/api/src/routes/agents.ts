@@ -13,6 +13,7 @@ import { AgentModel } from '@agentropolis/db';
 import { CITY_ID } from '@agentropolis/shared';
 import { agentAuth } from '../middleware/agentAuth';
 import { handleRegister, buildAgentSnapshot, actionQueue } from '../modules/agent';
+import { isDecisionWindowOpen } from '../modules/decision';
 import { getIO } from '../modules/realtime';
 import { SOCKET_EVENTS } from '@agentropolis/shared/contracts/v2';
 import type {
@@ -57,6 +58,12 @@ router.post('/register', async (req, res) => {
 // ---- POST /api/agents/action (auth required) ----
 router.post('/action', agentAuth, async (req, res) => {
   const agent = req.agent!;
+
+  // Decision window must be open to accept actions
+  if (!isDecisionWindowOpen()) {
+    res.status(429).json({ ok: false, reason: 'decision_window_closed' });
+    return;
+  }
 
   if (agent.status === 'jailed') {
     res.status(403).json({ ok: false, reason: 'agent_jailed' });
