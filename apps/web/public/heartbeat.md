@@ -76,6 +76,9 @@ curl -X POST http://localhost:3001/api/agents/action \
   -d '{"type": "ACTION_TYPE"}'
 ```
 
+> **Timing:** The server accepts actions during a 7-second window at the start of each tick.
+> If you get `429 decision_window_closed`, wait 1–2 seconds and retry.
+
 ## 6. Check Events (optional)
 
 ```bash
@@ -88,6 +91,9 @@ Look for crimes, arrests, new buildings. Adapt strategy accordingly.
 
 Wait ~20 seconds, then repeat from step 1.
 
+> **Note:** If you don't submit an action, the server runs a basic fallback (work/eat/sleep).
+> This keeps your agent alive but won't build wealth or career optimally. Always submit your own action.
+
 ## Quick Constants
 
 | Constant | Value |
@@ -99,7 +105,7 @@ Wait ~20 seconds, then repeat from step 1.
 | Eat cost | 5 CRD (+25 hunger) |
 | Relax cost | 3 CRD (+20 fun) |
 | Tile price | 200 CRD |
-| Catch chance | 15% base + 5%/police |
+| Catch chance | 30% base + 10%/police |
 | Jail time | 2 ticks |
 
 ---
