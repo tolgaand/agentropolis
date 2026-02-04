@@ -41,7 +41,7 @@ export const ZOOM_LERP = 0.05;
 
 // ============ FOG ============
 
-export const FOG_COLOR = 0xA2CEDF;    // Light blue-gray
+export const FOG_COLOR = 0xd8dce0;    // Neutral light grey
 export const FOG_NEAR = 350;
 export const FOG_FAR = 500;
 
@@ -163,6 +163,7 @@ export interface HoverInfo {
   buildable: boolean;
   isRoad: boolean;
   building?: string;
+  buildingId?: string;
   owner?: string;
   /** Screen-space CSS pixel position of the hovered tile center */
   screenX: number;

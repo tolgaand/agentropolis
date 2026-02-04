@@ -22,7 +22,7 @@ import {
   ZOOM_MIN_HEIGHT, ZOOM_MAX_HEIGHT, ZOOM_LERP,
   PAN_SPEED, PAN_LERP,
   FOG_COLOR, FOG_NEAR, FOG_FAR,
-  SHADOWMAP_RESOLUTION, DIR_LIGHT_COLOR, DIR_LIGHT_INTENSITY,
+  SHADOWMAP_RESOLUTION,
   ASSET_REGISTRY,
   SeededRandom,
   type Placement,
@@ -40,10 +40,21 @@ import { OfflineDataSource } from './V2DataSource';
 import { getCatalogEntry } from './V2BuildingCatalog';
 import { ChunkStatsCache, type ChunkStat } from './V2ChunkStats';
 import { MultiSourceRouter, type DataSourceMode } from './V2MultiDataSource';
+import { SeasonController } from './V2Season';
+import { WorldFXController, type WorldFXType } from './V2WorldFX';
+import { IndicatorController, type BuildingIndicator } from './V2Indicators';
+import { LensController, type LensMode, type LensBuildingData } from './V2Lens';
+import { TrafficController } from './V2Traffic';
+import { ParticleController } from './V2Particles';
+import { AgentSpriteController, type AgentSpriteData } from './V2AgentSprites';
 
 export type { HoverInfo, CityRendererV2Callbacks } from './V2Config';
 export type { ChunkStat } from './V2ChunkStats';
 export type { DataSourceMode } from './V2MultiDataSource';
+export type { WorldFXType } from './V2WorldFX';
+export type { BuildingIndicator, IndicatorType } from './V2Indicators';
+export type { LensMode, LensBuildingData } from './V2Lens';
+export type { AgentSpriteData } from './V2AgentSprites';
 
 export interface PlaceBuildingResult {
   ok: boolean;
@@ -108,12 +119,31 @@ export class CityRendererV2 {
 
   // Lighting
   private dirLight!: THREE.DirectionalLight;
+  private ambientLight!: THREE.AmbientLight;
+  private hemiLight!: THREE.HemisphereLight;
 
   // Reusable dummy for matrix computation
   private dummy = new THREE.Object3D();
 
   // Clock for animation effects
   private clock = new THREE.Clock();
+
+  // Season atmosphere controller
+  private seasonController = new SeasonController();
+
+  // World effects (crime pulse, building closed/opened)
+  private worldFX = new WorldFXController();
+
+  // In-world building status indicators
+  private indicators = new IndicatorController();
+
+  // Lens overlay system (activity, crime, needs)
+  private lens = new LensController();
+
+  // Traffic particle system (fake cars on roads)
+  private traffic = new TrafficController();
+  private particles = new ParticleController();
+  private agentSprites = new AgentSpriteController();
 
   // Minimap: top-down orthographic camera + render target
   private minimapCamera: THREE.OrthographicCamera | null = null;
@@ -209,6 +239,15 @@ export class CityRendererV2 {
     // Lighting
     this.setupLighting();
 
+    // Attach season controller to scene refs
+    this.seasonController.attach({
+      scene: this.scene,
+      ambientLight: this.ambientLight,
+      hemiLight: this.hemiLight,
+      dirLight: this.dirLight,
+      clouds: this.clouds,
+    });
+
     // Events
     this.bindEvents();
 
@@ -217,10 +256,12 @@ export class CityRendererV2 {
   }
 
   private setupLighting(): void {
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    this.scene.add(new THREE.HemisphereLight(0x87CEEB, 0x8B7355, 0.4));
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    this.hemiLight = new THREE.HemisphereLight(0xeef4f8, 0x8B8070, 0.4);
+    this.scene.add(this.ambientLight);
+    this.scene.add(this.hemiLight);
 
-    this.dirLight = new THREE.DirectionalLight(DIR_LIGHT_COLOR, DIR_LIGHT_INTENSITY);
+    this.dirLight = new THREE.DirectionalLight(0xfff8f0, 1.1);
     this.dirLight.position.set(150, 200, -60);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.radius = 1;
@@ -296,6 +337,26 @@ export class CityRendererV2 {
 
     // 7. Add clouds
     this.createClouds();
+
+    // 8. Attach world FX to building meshes
+    this.worldFX.attach(this.meshes, maxPerAsset);
+
+    // 9. Initialize in-world indicators
+    this.indicators.init(this.chunkScene);
+
+    // 10. Attach lens controller (shares instanceColor buffers with WorldFX)
+    this.lens.attach(this.meshes);
+
+    // 11. Initialize traffic system (loads vehicle GLBs, spawns on roads)
+    this.traffic.init(this.chunkScene).catch((err) => {
+      console.warn('[V2] Traffic init failed:', err);
+    });
+
+    // 12. Initialize season particle system
+    this.particles.init(this.chunkScene);
+
+    // 13. Initialize agent sprite system
+    this.agentSprites.init(this.chunkScene);
 
     // Log stats
     console.log(`[V2] InstancedMesh count: ${this.meshes.size}, draw calls should be ~${this.meshes.size + 3}`);
@@ -476,6 +537,7 @@ export class CityRendererV2 {
       if (tileInfo.localX >= b.localX && tileInfo.localX < b.localX + tw &&
           tileInfo.localZ >= b.localZ && tileInfo.localZ < b.localZ + td) {
         hover.building = b.type;
+        hover.buildingId = b.id;
         break;
       }
     }
@@ -659,7 +721,31 @@ export class CityRendererV2 {
     this.updateClouds();
 
     // 5. Update shader effects (time uniform)
-    updateEffectsTime(this.clock.getDelta());
+    const dt = this.clock.getDelta();
+    updateEffectsTime(dt);
+
+    // 5b. Update season atmosphere
+    this.seasonController.update(dt);
+
+    // 5c. Update world effects (crime pulse, building state)
+    this.worldFX.update(this.currentHeight);
+
+    // 5d. Update lens overlay (after WorldFX to override when active)
+    this.lens.update();
+
+    // 5e. Update in-world indicators (billboards face camera)
+    this.indicators.setGridCoords(this.gridCoords.x, this.gridCoords.y);
+    this.indicators.update(this.currentHeight, this.camera);
+
+    // 5f. Update traffic particles
+    this.traffic.update(dt, this.currentHeight);
+
+    // 5g. Update season particles (snow, leaves)
+    this.particles.update(dt, this.currentHeight);
+
+    // 5h. Update agent sprites (billboard toward camera)
+    this.agentSprites.setGridCoords(this.gridCoords.x, this.gridCoords.y);
+    this.agentSprites.update(this.currentHeight, this.camera);
 
     // 6. Render
     this.renderer.render(this.scene, this.camera);
@@ -669,32 +755,34 @@ export class CityRendererV2 {
     const pos = this.chunkScene.position;
     const halfChunk = CHUNK_SIZE / 2;
 
-    let shifted = false;
+    let shiftDx = 0;
+    let shiftDz = 0;
 
     if (pos.x > halfChunk) {
       this.sceneOffset.x -= CHUNK_SIZE;
       this.gridCoords.x -= 1;
-      shifted = true;
+      shiftDx = -1;
     } else if (pos.x < -halfChunk) {
       this.sceneOffset.x += CHUNK_SIZE;
       this.gridCoords.x += 1;
-      shifted = true;
+      shiftDx = 1;
     }
 
     if (pos.z > halfChunk) {
       this.sceneOffset.z -= CHUNK_SIZE;
       this.gridCoords.y -= 1;
-      shifted = true;
+      shiftDz = -1;
     } else if (pos.z < -halfChunk) {
       this.sceneOffset.z += CHUNK_SIZE;
       this.gridCoords.y += 1;
-      shifted = true;
+      shiftDz = 1;
     }
 
-    if (shifted) {
+    if (shiftDx !== 0 || shiftDz !== 0) {
       this.chunkScene.position.addVectors(this.sceneOffset, this.smoothWorldOffset);
       this.syncAOI();
       this.regenerateAndRefresh();
+      this.traffic.onGridShift(shiftDx, shiftDz);
     }
   }
 
@@ -804,6 +892,52 @@ export class CityRendererV2 {
     await this.dataSource.removeBuilding(id);
     this.regenerateAndRefresh();
     console.log(`[V2] Removed building "${id}"`);
+  }
+
+  /** Set the current game season (triggers smooth transition) */
+  setSeason(season: string): void {
+    this.seasonController.setSeason(season);
+    this.particles.setSeason(season as 'spring' | 'summer' | 'autumn' | 'winter');
+  }
+
+  /** Trigger a world effect on a building instance */
+  triggerWorldFX(type: WorldFXType, meshKey: string, instanceIndex: number): void {
+    this.worldFX.triggerEffect(type, meshKey, instanceIndex);
+  }
+
+  /** Clear all active world effects */
+  clearWorldFX(): void {
+    this.worldFX.clear();
+  }
+
+  /** Update building status indicators (replaces all) */
+  setIndicators(indicators: BuildingIndicator[]): void {
+    this.indicators.setIndicators(indicators);
+  }
+
+  /** Clear all building indicators */
+  clearIndicators(): void {
+    this.indicators.clear();
+  }
+
+  /** Set active lens mode ('off' | 'activity' | 'crime' | 'needs') */
+  setLensMode(mode: LensMode): void {
+    this.lens.setMode(mode);
+  }
+
+  /** Get current lens mode */
+  getLensMode(): LensMode {
+    return this.lens.getMode();
+  }
+
+  /** Feed data for the active lens */
+  setLensData(data: LensBuildingData[]): void {
+    this.lens.setLensData(data);
+  }
+
+  /** Update agent sprite positions on the map */
+  setAgentSprites(agents: AgentSpriteData[]): void {
+    this.agentSprites.setAgents(agents);
   }
 
   /** Clear all overrides (buildings + parcels) from stores and localStorage */
@@ -1241,9 +1375,9 @@ export class CityRendererV2 {
     const size = canvas.width;
 
     // Lazy-init minimap camera & render target
-    // Show ~1.8 chunks of area — tight enough to see individual buildings
+    // Show ~1.2 chunks of area — tight enough to see individual buildings
     if (!this.minimapCamera) {
-      const span = CHUNK_SIZE * 1.8;
+      const span = CHUNK_SIZE * 1.2;
       this.minimapCamera = new THREE.OrthographicCamera(-span, span, span, -span, 1, 800);
       this.minimapCamera.up.set(0, 0, -1); // north = up on minimap
     }
@@ -1337,6 +1471,10 @@ export class CityRendererV2 {
       }
     });
 
+    this.indicators.dispose();
+    this.traffic.dispose();
+    this.particles.dispose();
+    this.agentSprites.dispose();
     this.renderer.dispose();
     this.container.removeChild(el);
     this.meshes.clear();
